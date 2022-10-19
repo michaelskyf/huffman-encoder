@@ -1,0 +1,13 @@
+build
+*.o
+.*
+
+a.out
+
+!.clang-format
+!.cocciconfig
+!.get_maintainer.ignore
+!.gitattributes
+!.gitignore
+!.github
+!.mailmap
