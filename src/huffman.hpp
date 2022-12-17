@@ -8,6 +8,20 @@
 class HuffmanDictionary;
 class HuffmanCoder;
 
+
+struct huffman_tree_node
+{
+	char character;
+	size_t frequency;
+	std::unique_ptr<huffman_tree_node> left;
+	std::unique_ptr<huffman_tree_node> right;
+
+	bool is_character() const
+	{
+		return !(left.get() || right.get());
+	}
+};
+
 class HuffmanDictionary
 {
 	friend HuffmanCoder;
@@ -26,24 +40,6 @@ public:
 	bool is_initialized() const;
 
 private:
-	struct huffman_tree_node
-	{
-		char character;
-		size_t frequency;
-
-		std::unique_ptr<huffman_tree_node> left;
-		std::unique_ptr<huffman_tree_node> right;
-
-		bool is_character() const
-		{
-			return !(left.get() || right.get());
-		}
-	};
-
-	using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
-
-	sorted_frequencies get_frequencies(const char* data, size_t size) const;
-
 	std::unique_ptr<huffman_tree_node> m_root;
 };
 
@@ -55,12 +51,14 @@ public:
 
 	/**
 	 * @brief				create a new dictionary and encode bytes according to it
+	 * @param[in]	src		data
 	 * @returns				encoded data
 	 */
 	std::string encode(const std::string& src);
 
 	/**
 	 * @brief				decode given data using internal dictionary
+	 * @param[in]	src		encoded data
 	 * @returns				decoded data
 	 */
 	std::string decode(const std::string& src) const;

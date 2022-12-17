@@ -1,11 +1,17 @@
 #include "huffman.hpp"
 #include <algorithm>
+#include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <utility>
+#include <map>
+#include <functional>
 
-HuffmanDictionary::sorted_frequencies HuffmanDictionary::get_frequencies(const char* data, size_t size) const
+using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
+
+sorted_frequencies get_frequencies(const char* data, size_t size)
 {
 	const void* end = data + size;
 	size_t freqs[256]{};
@@ -41,6 +47,7 @@ HuffmanDictionary::sorted_frequencies HuffmanDictionary::get_frequencies(const c
 void HuffmanDictionary::create(const char* data, size_t size)
 {
 	auto frequencies = get_frequencies(data, size);
+
 	auto get_iter = [](const sorted_frequencies& f, size_t frequency)
 	{
 		for(auto it = f.begin(); it != f.end(); it++)
@@ -88,10 +95,64 @@ bool HuffmanDictionary::is_initialized() const
 
 std::string HuffmanCoder::encode(const std::string& src)
 {
+	std::string result{};
+	std::map<char, std::pair<char, uint8_t>> lookup_table{};
+
+	std::function<void(const huffman_tree_node& node, char code, uint8_t depth)> make_lookup_table;
+	
+	make_lookup_table = [&](const huffman_tree_node& node, char code, uint8_t depth)
+	{
+		if(node.is_character())
+		{
+			lookup_table.emplace(node.character, std::make_pair(code, depth));
+		}
+		else
+		{
+			make_lookup_table(*node.right, (code << 1) | 1, depth+1);
+			make_lookup_table(*node.left, code << 1, depth+1);
+		}
+	};
+
 	m_dictionary.create(src.data(), src.size());
+
+	if(!m_dictionary.is_initialized())
+		return {};
+
+	make_lookup_table(*m_dictionary.m_root, 0, 0);
+
+	uint8_t buf_cnt = 0;
+	unsigned char c_buf = 0;
+	for(char c : src)
+	{
+		const auto& code = lookup_table.at(c);
+
+		int space_left = 8 - buf_cnt - code.second;
+
+		c_buf |= code.first << buf_cnt;
+
+		if(space_left <= 0)
+		{
+			result.push_back(c_buf);
+			c_buf = 0 | (code.first >> (8-buf_cnt));
+			buf_cnt = -space_left;
+		}
+		else
+		{
+			buf_cnt = 8 - space_left;
+		}
+	}
+
+	if(buf_cnt)
+		result.push_back(c_buf);
+
+	return result;
 }
 
 std::string HuffmanCoder::decode(const std::string& src) const
 {
+	if(!m_dictionary.is_initialized()) return {};
+	
+	std::string result(m_dictionary.size(), 0);
 
+	return result;
 }

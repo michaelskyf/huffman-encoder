@@ -1,41 +1,30 @@
+#include <cstdio>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <utility>
 
 #include "../src/huffman.hpp"
-/*
-class TestDictionary : public HuffmanDictionary
-{
-public:
-	sorted_frequencies get_frequencies(const char* data, size_t size)
-	{
-		return HuffmanDictionary::get_frequencies(data, size);
-	}
-};
 
-TEST(huffman, frequencies)
+TEST(huffman, string)
 {
-	TestDictionary dic;
+	HuffmanCoder coder;
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
-	auto result = dic.get_frequencies(test_string.data(), test_string.size());
-	const std::pair<char, size_t> frequencies[]
-	{
-		{'G', 7},
-		{'F', 6},
-		{'E', 5},
-		{'D', 4},
-		{'C', 3},
-		{'B', 2},
-		{'A', 1},
-	};
+	const std::vector<unsigned char> correctly_encoded_string = 
+	{0xEF, 0x6E, 0x3B, 0x49, 0x00, 0x00, 0xAA, 0x5A, 0x55, 0x01};
+	// More common bytes are begin with 0, while less common with 1
 
-	if(result.size() != sizeof(frequencies)/sizeof(*frequencies))
+	const auto result = coder.encode(test_string);
+
+	if(correctly_encoded_string.size() != result.size())
+	{
 		FAIL();
+	}
 
-	for(size_t i = 0; i < result.size(); i++)
+	for(size_t i = 0; i < correctly_encoded_string.size(); i++)
 	{
-		if(result[i] != frequencies[i])
+		if((unsigned char)result[i] != correctly_encoded_string[i])
+		{
 			FAIL();
+		}
 	}
 }
-*/

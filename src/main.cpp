@@ -133,6 +133,49 @@ int main(int argc, char* argv[])
 {
 	parse_args(argc, argv);
 
-	HuffmanDictionary h;
-	h.create("Dzien dobry pani profesor", strlen("Dzien dobry pani profesor"));
+	HuffmanCoder c;
+	//auto result = c.encode("ABABABABABCCD");
+	auto result = c.encode("Get your motor runnin'\n"
+"Head out on the highway\n"
+"Looking for adventure\n"
+"In whatever comes our way\n"
+"Yeah, darlin' gonna make it happen\n"
+"Take the world in a love embrace\n"
+"Fire all of your guns at once\n"
+"And explode into space\n"
+"I like smoke and lightnin'\n"
+"Heavy metal thunder\n"
+"Racing with the wind\n"
+"And the feeling that I'm under\n"
+"Yeah, darlin' gonna make it happen\n"
+"Take the world in a love embrace\n"
+"Fire all of your guns at once\n"
+"And explode into space\n"
+"Like a true nature's child\n"
+"We were born\n"
+"Born to be wild\n"
+"We can climb so high\n"
+"I never wanna die\n"
+"Born to be wild\n"
+"Born to be wild\n"
+"Get your motor runnin'\n"
+"Head out on the highway\n"
+"Looking for adventure\n"
+"In whatever comes our way\n"
+"Yeah, darlin' gonna make it happen\n"
+"Take the world in a love embrace\n"
+"Fire all of your guns at once\n"
+"And explode into space\n"
+"Like a true nature's child\n"
+"We were born\n"
+"Born to be wild\n"
+"We can climb so high\n"
+"I never wanna die\n"
+"Born to be wild\n"
+"Born to be wild");
+
+	printf("size(): %ld\n", result.size());
+	printf("result[0]: %x\n", result[0]);
+	printf("result[1]: %x\n", result[1]);
+	printf("result[2]: %x\n", (unsigned char)result[2]);
 }
