@@ -1,30 +1,54 @@
 #include <cstdio>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <string>
 #include <utility>
 
 #include "../src/huffman.hpp"
 
-TEST(huffman, string)
+TEST(huffman, encoding)
 {
 	HuffmanCoder coder;
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
 	const std::vector<unsigned char> correctly_encoded_string = 
-	{0xEF, 0x6E, 0x3B, 0x49, 0x00, 0x00, 0xAA, 0x5A, 0x55, 0x01};
-	// More common bytes are begin with 0, while less common with 1
+	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
+	// More common bytes begin with 0, and less common with 1
 
-	const auto result = coder.encode(test_string);
+	const auto encoded_string = coder.encode(test_string);
 
-	if(correctly_encoded_string.size() != result.size())
+	EXPECT_EQ(correctly_encoded_string.size(), encoded_string.size());
+
+	if(correctly_encoded_string.size() != encoded_string.size())
 	{
 		FAIL();
 	}
 
 	for(size_t i = 0; i < correctly_encoded_string.size(); i++)
 	{
-		if((unsigned char)result[i] != correctly_encoded_string[i])
-		{
-			FAIL();
-		}
+		EXPECT_EQ((unsigned char)encoded_string[i], correctly_encoded_string[i]);
+	}
+}
+
+TEST(huffman, decoding)
+{
+	HuffmanCoder coder;
+	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
+	const std::basic_string<unsigned char> encoded_string = 
+	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
+
+	coder.encode(test_string); // Creates a huffman tree inside the coder
+
+	const auto decoded_string = coder.decode({encoded_string.begin(), encoded_string.end()});
+
+	EXPECT_EQ(test_string.size(), decoded_string.size());
+
+	if(test_string.size() != decoded_string.size())
+	{
+		FAIL();
+	}
+
+	for(size_t i = 0; i < test_string.size(); i++)
+	{
+		EXPECT_EQ(decoded_string[i], test_string[i]);
 	}
 }

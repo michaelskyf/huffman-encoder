@@ -99,12 +99,23 @@ std::string HuffmanCoder::encode(const std::string& src)
 	std::map<char, std::pair<char, uint8_t>> lookup_table{};
 
 	std::function<void(const huffman_tree_node& node, char code, uint8_t depth)> make_lookup_table;
+	auto reverse_code = [](char code, uint8_t depth)
+	{
+		char new_code = 0;
+		while(depth--)
+		{
+			new_code |= (code & 1) << depth;
+			code >>= 1;
+		}
+
+		return new_code;
+	};
 	
 	make_lookup_table = [&](const huffman_tree_node& node, char code, uint8_t depth)
 	{
 		if(node.is_character())
 		{
-			lookup_table.emplace(node.character, std::make_pair(code, depth));
+			lookup_table.emplace(node.character, std::make_pair(reverse_code(code, depth), depth));
 		}
 		else
 		{
@@ -152,7 +163,44 @@ std::string HuffmanCoder::decode(const std::string& src) const
 {
 	if(!m_dictionary.is_initialized()) return {};
 	
-	std::string result(m_dictionary.size(), 0);
+	std::string result{};
+
+	size_t characters_left = m_dictionary.size();
+	const huffman_tree_node* current_node = m_dictionary.m_root.get();
+	for(char c : src)
+	{
+		uint8_t bits_left = 8;
+
+		while(bits_left != 0)
+		{
+			if(current_node->is_character())
+			{
+				//printf(" -> %c\n", current_node->character);
+				result.push_back(current_node->character);
+				current_node = m_dictionary.m_root.get();
+				if(--characters_left == 0) // When a dictionary is initialized, it has at least one character
+				{
+					return result;
+				}
+			}
+			else
+			{
+				if(c & 1)
+				{
+					//printf("1");
+					current_node = current_node->right.get();
+				}
+				else
+				{
+					//printf("0");
+					current_node = current_node->left.get();
+				}
+
+				c >>= 1;
+				bits_left--;
+			}
+		}
+	}
 
 	return result;
 }

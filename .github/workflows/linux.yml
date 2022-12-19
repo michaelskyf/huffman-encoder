@@ -1,0 +1,46 @@
+name: GNU/Linux
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+    defaults:
+      run:
+        shell: bash
+
+jobs:
+  linux:
+    name: Build project for GNU/Linux with ${{matrix.compiler.name}}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - {name: GCC, cc: gcc, cxx: g++}
+          - {name: Clang, cc: clang, cxx: clang++}
+
+    steps:
+      - name: Checkout respository
+        uses: actions/checkout@v2
+
+      - name: Update git submodules
+        run: git submodule update --init
+
+      - name: Install dependencies
+        run: sudo apt install libgtest-dev libgmock-dev valgrind
+
+      - name: Run CMake
+        run: cmake . -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
+
+      - name: Build the project
+        run: make
+
+      - name: Run tests
+        id: runTests
+        run: make ExperimentalMemCheck
+
+      - name: Read valgrind logs
+        if: success() || failure()
+        run: cat Testing/Temporary/MemoryChecker.*.log | cat

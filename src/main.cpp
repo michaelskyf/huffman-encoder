@@ -12,6 +12,7 @@ dekompresji)
 #include <cstring>
 #include <iostream>
 #include <iomanip>
+#include <string>
 #include <vector>
 #include <getopt.h>
 #include "huffman.hpp"
@@ -134,8 +135,7 @@ int main(int argc, char* argv[])
 	parse_args(argc, argv);
 
 	HuffmanCoder c;
-	//auto result = c.encode("ABABABABABCCD");
-	auto result = c.encode("Get your motor runnin'\n"
+	std::string lyrics = "Get your motor runnin'\n"
 "Head out on the highway\n"
 "Looking for adventure\n"
 "In whatever comes our way\n"
@@ -172,10 +172,7 @@ int main(int argc, char* argv[])
 "We can climb so high\n"
 "I never wanna die\n"
 "Born to be wild\n"
-"Born to be wild");
+"Born to be wild";
 
-	printf("size(): %ld\n", result.size());
-	printf("result[0]: %x\n", result[0]);
-	printf("result[1]: %x\n", result[1]);
-	printf("result[2]: %x\n", (unsigned char)result[2]);
+	c.encode(lyrics);
 }

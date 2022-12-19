@@ -63,6 +63,9 @@ public:
 	 */
 	std::string decode(const std::string& src) const;
 
+	void dictionary(const HuffmanDictionary& dictionary);
+	HuffmanDictionary dictionary() const;
+
 private:
 	HuffmanDictionary m_dictionary;
 };
