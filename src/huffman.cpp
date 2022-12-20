@@ -65,15 +65,17 @@ void HuffmanDictionary::create(const char* data, size_t size)
 	while(frequencies.size() > 1)
 	{
 		size_t new_frequency = frequencies[0]->m_frequency + frequencies[1]->m_frequency;
+		auto new_node = std::make_unique<huffman_tree_node>(std::move(frequencies[0]), std::move(frequencies[1]), new_frequency);
 
-		// Create a new node containing two nodes with the lowest frequencies
-		frequencies.emplace(std::find_if(frequencies.begin(),
+		// Remove the first two nodes
+		frequencies.erase(frequencies.begin(), frequencies.begin()+2);
+
+		// Insert the new node
+		frequencies.insert(std::find_if(frequencies.begin(),
 									frequencies.end(),
 									[&](const std::unique_ptr<huffman_tree_node>& n)
 									{ return n->m_frequency >= new_frequency; }),
-									std::make_unique<huffman_tree_node>(std::move(frequencies[0]), std::move(frequencies[1]), new_frequency));
-
-		frequencies.erase(frequencies.begin(), frequencies.begin()+2);
+									std::move(new_node));
 	}
 
 	if(frequencies.size() != 0)
