@@ -1,14 +1,6 @@
 #include "huffman.hpp"
-#include <algorithm>
-#include <cstdint>
-#include <cstdio>
-#include <iostream>
-#include <memory>
-#include <stdexcept>
-#include <utility>
 #include <map>
 #include <functional>
-#include <set>
 
 using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
 
@@ -96,13 +88,12 @@ bool HuffmanDictionary::is_initialized() const
 	return m_root.get();
 }
 
-
 std::string HuffmanDictionary::encode(const std::string& src)
 {
 	std::string result{};
 	std::map<char, std::pair<char, uint8_t>> lookup_table{};
 
-	
+	// When travelling down the tree the code reversed, so we need to reverse it once again
 	auto reverse_code = [](char code, uint8_t depth)
 	{
 		char new_code = 0;
@@ -115,6 +106,7 @@ std::string HuffmanDictionary::encode(const std::string& src)
 		return new_code;
 	};
 	
+	// Fills up an std::map that contains information to translate characters into their corresponding code
 	std::function<void(const huffman_tree_node& node, char code, uint8_t depth)> make_lookup_table =
 	[&](const huffman_tree_node& node, char code, uint8_t depth)
 	{
@@ -131,8 +123,7 @@ std::string HuffmanDictionary::encode(const std::string& src)
 
 	this->create(src.data(), src.size());
 
-	if(!this->is_initialized())
-		return {};
+	if(!this->is_initialized()) return {};
 
 	make_lookup_table(*this->m_root, 0, 0);
 
