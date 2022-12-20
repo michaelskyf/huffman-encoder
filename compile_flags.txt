@@ -5,3 +5,4 @@
 -Wno-gnu-statement-expression
 -Wno-pointer-arith
 -std=c++17
+-Iinclude

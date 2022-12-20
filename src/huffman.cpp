@@ -1,6 +1,8 @@
-#include "huffman.hpp"
 #include <map>
 #include <functional>
+#include <vector>
+
+#include <huffman.hpp>
 
 using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
 

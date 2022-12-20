@@ -1,10 +1,7 @@
-#include <cstdio>
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <string>
-#include <utility>
 
-#include "../src/huffman.hpp"
+#include <huffman.hpp>
 
 TEST(huffman, encoding)
 {

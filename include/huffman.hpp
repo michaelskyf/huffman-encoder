@@ -63,6 +63,13 @@ public:
 	bool is_initialized() const;
 
 	/**
+	 * @brief				TODO
+	 * @returns				nullptr if the tree is not initialized, otherwise a pointer to the root node
+	 * @throws				nothing
+	 */
+	const huffman_tree_node* data() const;
+
+	/**
 	 * @brief				create a new dictionary and encode the data according to it
 	 * @param[in]	src		data
 	 * @returns				encoded data
