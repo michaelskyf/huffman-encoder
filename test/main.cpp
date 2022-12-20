@@ -8,7 +8,7 @@
 
 TEST(huffman, encoding)
 {
-	HuffmanCoder coder;
+	HuffmanDictionary coder;
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
 	const std::vector<unsigned char> correctly_encoded_string = 
 	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
@@ -31,7 +31,7 @@ TEST(huffman, encoding)
 
 TEST(huffman, decoding)
 {
-	HuffmanCoder coder;
+	HuffmanDictionary coder;
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
 	const std::basic_string<unsigned char> encoded_string = 
 	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};

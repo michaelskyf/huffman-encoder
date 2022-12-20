@@ -133,46 +133,4 @@ static int parse_args(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	parse_args(argc, argv);
-
-	HuffmanCoder c;
-	std::string lyrics = "Get your motor runnin'\n"
-"Head out on the highway\n"
-"Looking for adventure\n"
-"In whatever comes our way\n"
-"Yeah, darlin' gonna make it happen\n"
-"Take the world in a love embrace\n"
-"Fire all of your guns at once\n"
-"And explode into space\n"
-"I like smoke and lightnin'\n"
-"Heavy metal thunder\n"
-"Racing with the wind\n"
-"And the feeling that I'm under\n"
-"Yeah, darlin' gonna make it happen\n"
-"Take the world in a love embrace\n"
-"Fire all of your guns at once\n"
-"And explode into space\n"
-"Like a true nature's child\n"
-"We were born\n"
-"Born to be wild\n"
-"We can climb so high\n"
-"I never wanna die\n"
-"Born to be wild\n"
-"Born to be wild\n"
-"Get your motor runnin'\n"
-"Head out on the highway\n"
-"Looking for adventure\n"
-"In whatever comes our way\n"
-"Yeah, darlin' gonna make it happen\n"
-"Take the world in a love embrace\n"
-"Fire all of your guns at once\n"
-"And explode into space\n"
-"Like a true nature's child\n"
-"We were born\n"
-"Born to be wild\n"
-"We can climb so high\n"
-"I never wanna die\n"
-"Born to be wild\n"
-"Born to be wild";
-
-	c.encode(lyrics);
 }

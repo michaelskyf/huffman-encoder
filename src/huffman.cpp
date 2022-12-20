@@ -8,8 +8,26 @@
 #include <utility>
 #include <map>
 #include <functional>
+#include <set>
 
 using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
+
+huffman_tree_node::huffman_tree_node(char c, size_t freq)
+	:m_character{c}, m_frequency{freq}
+{
+
+}
+
+huffman_tree_node::huffman_tree_node(std::unique_ptr<huffman_tree_node>&& lhs, std::unique_ptr<huffman_tree_node>&& rhs, size_t freq)
+	:m_left{std::move(lhs)}, m_right{std::move(rhs)}, m_frequency{freq}
+{
+
+}
+
+bool huffman_tree_node::is_character() const
+{
+	return !(m_left.get() || m_right.get());
+}
 
 sorted_frequencies get_frequencies(const char* data, size_t size)
 {
@@ -18,9 +36,10 @@ sorted_frequencies get_frequencies(const char* data, size_t size)
 	sorted_frequencies result;
 
 	// Get frequencies of each character
-	for(; data < end; data++)
+	while(data < end)
 	{
 		freqs[(unsigned char)*data]++;
+		data++;
 	}
 
 	// Create nodes for characters with frequency > 0
@@ -28,18 +47,13 @@ sorted_frequencies get_frequencies(const char* data, size_t size)
 	{
 		if(freqs[i] == 0) continue;
 
-		result.emplace_back(std::make_unique<huffman_tree_node>());
-		result.back()->character = i;
-		result.back()->frequency = freqs[i];
+		// Insert the node into result
+		result.emplace(std::find_if(result.begin(),
+								result.end(),
+								[&](const std::unique_ptr<huffman_tree_node>& n)
+								{ return n->m_frequency >= freqs[i]; }),
+								std::make_unique<huffman_tree_node>(i, freqs[i]));
 	}
-
-	// Sort the result ascending
-	std::sort(result.begin(),
-					result.end(),
-					[](const std::unique_ptr<huffman_tree_node>& lhs, const std::unique_ptr<huffman_tree_node>& rhs)
-					{ return lhs->frequency < rhs->frequency; });
-
-	
 
 	return result;
 }
@@ -48,30 +62,18 @@ void HuffmanDictionary::create(const char* data, size_t size)
 {
 	auto frequencies = get_frequencies(data, size);
 
-	auto get_iter = [](const sorted_frequencies& f, size_t frequency)
-	{
-		for(auto it = f.begin(); it != f.end(); it++)
-		{
-			if(it->get()->frequency >= frequency)
-			{
-				return it;
-			}
-		}
-
-		return f.end();
-	};
-
 	while(frequencies.size() > 1)
 	{
-		auto new_node = std::make_unique<huffman_tree_node>();
-		
-		new_node->right = std::move(frequencies[0]);
-		new_node->left = std::move(frequencies[1]);
+		size_t new_frequency = frequencies[0]->m_frequency + frequencies[1]->m_frequency;
+
+		// Create a new node containing two nodes with the lowest frequencies
+		frequencies.emplace(std::find_if(frequencies.begin(),
+									frequencies.end(),
+									[&](const std::unique_ptr<huffman_tree_node>& n)
+									{ return n->m_frequency >= new_frequency; }),
+									std::make_unique<huffman_tree_node>(std::move(frequencies[0]), std::move(frequencies[1]), new_frequency));
+
 		frequencies.erase(frequencies.begin(), frequencies.begin()+2);
-
-		new_node->frequency = new_node->right->frequency + new_node->left->frequency;
-
-		frequencies.insert(get_iter(frequencies, new_node->frequency), std::move(new_node));
 	}
 
 	if(frequencies.size() != 0)
@@ -84,7 +86,7 @@ size_t HuffmanDictionary::size() const
 {
 	if(!is_initialized()) return 0;
 
-	return m_root->frequency;
+	return m_root->m_frequency;
 }
 
 bool HuffmanDictionary::is_initialized() const
@@ -93,12 +95,12 @@ bool HuffmanDictionary::is_initialized() const
 }
 
 
-std::string HuffmanCoder::encode(const std::string& src)
+std::string HuffmanDictionary::encode(const std::string& src)
 {
 	std::string result{};
 	std::map<char, std::pair<char, uint8_t>> lookup_table{};
 
-	std::function<void(const huffman_tree_node& node, char code, uint8_t depth)> make_lookup_table;
+	
 	auto reverse_code = [](char code, uint8_t depth)
 	{
 		char new_code = 0;
@@ -111,25 +113,26 @@ std::string HuffmanCoder::encode(const std::string& src)
 		return new_code;
 	};
 	
-	make_lookup_table = [&](const huffman_tree_node& node, char code, uint8_t depth)
+	std::function<void(const huffman_tree_node& node, char code, uint8_t depth)> make_lookup_table =
+	[&](const huffman_tree_node& node, char code, uint8_t depth)
 	{
 		if(node.is_character())
 		{
-			lookup_table.emplace(node.character, std::make_pair(reverse_code(code, depth), depth));
+			lookup_table.emplace(node.m_character, std::make_pair(reverse_code(code, depth), depth));
 		}
 		else
 		{
-			make_lookup_table(*node.right, (code << 1) | 1, depth+1);
-			make_lookup_table(*node.left, code << 1, depth+1);
+			make_lookup_table(*node.m_right, code << 1, depth+1);
+			make_lookup_table(*node.m_left, (code << 1) | 1, depth+1);
 		}
 	};
 
-	m_dictionary.create(src.data(), src.size());
+	this->create(src.data(), src.size());
 
-	if(!m_dictionary.is_initialized())
+	if(!this->is_initialized())
 		return {};
 
-	make_lookup_table(*m_dictionary.m_root, 0, 0);
+	make_lookup_table(*this->m_root, 0, 0);
 
 	uint8_t buf_cnt = 0;
 	unsigned char c_buf = 0;
@@ -159,14 +162,14 @@ std::string HuffmanCoder::encode(const std::string& src)
 	return result;
 }
 
-std::string HuffmanCoder::decode(const std::string& src) const
+std::string HuffmanDictionary::decode(const std::string& src) const
 {
-	if(!m_dictionary.is_initialized()) return {};
+	if(!this->is_initialized()) return {};
 	
 	std::string result{};
 
-	size_t characters_left = m_dictionary.size();
-	const huffman_tree_node* current_node = m_dictionary.m_root.get();
+	size_t characters_left = this->size();
+	const huffman_tree_node* current_node = this->m_root.get();
 	for(char c : src)
 	{
 		uint8_t bits_left = 8;
@@ -175,9 +178,8 @@ std::string HuffmanCoder::decode(const std::string& src) const
 		{
 			if(current_node->is_character())
 			{
-				//printf(" -> %c\n", current_node->character);
-				result.push_back(current_node->character);
-				current_node = m_dictionary.m_root.get();
+				result.push_back(current_node->m_character);
+				current_node = this->m_root.get();
 				if(--characters_left == 0) // When a dictionary is initialized, it has at least one character
 				{
 					return result;
@@ -186,15 +188,9 @@ std::string HuffmanCoder::decode(const std::string& src) const
 			else
 			{
 				if(c & 1)
-				{
-					//printf("1");
-					current_node = current_node->right.get();
-				}
+					current_node = current_node->m_left.get();
 				else
-				{
-					//printf("0");
-					current_node = current_node->left.get();
-				}
+					current_node = current_node->m_right.get();
 
 				c >>= 1;
 				bits_left--;

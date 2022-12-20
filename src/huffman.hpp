@@ -6,26 +6,24 @@
 #include <string>
 
 class HuffmanDictionary;
-class HuffmanCoder;
-
 
 struct huffman_tree_node
 {
-	char character;
-	size_t frequency;
-	std::unique_ptr<huffman_tree_node> left;
-	std::unique_ptr<huffman_tree_node> right;
+	huffman_tree_node() = default;
+	huffman_tree_node(char c, size_t freq);
+	huffman_tree_node(std::unique_ptr<huffman_tree_node>&& lhs, std::unique_ptr<huffman_tree_node>&& rhs, size_t freq);
+	~huffman_tree_node() = default;
 
-	bool is_character() const
-	{
-		return !(left.get() || right.get());
-	}
+	bool is_character() const;
+
+	std::unique_ptr<huffman_tree_node> m_left;
+	std::unique_ptr<huffman_tree_node> m_right;
+	char m_character;
+	size_t m_frequency;
 };
 
 class HuffmanDictionary
 {
-	friend HuffmanCoder;
-
 public:
 	HuffmanDictionary() = default;
 	HuffmanDictionary(const char* data, size_t size);
@@ -38,16 +36,6 @@ public:
 	void create(const char* data, size_t size);
 	size_t size() const;
 	bool is_initialized() const;
-
-private:
-	std::unique_ptr<huffman_tree_node> m_root;
-};
-
-class HuffmanCoder
-{
-public:
-	HuffmanCoder() = default;
-	~HuffmanCoder() = default;
 
 	/**
 	 * @brief				create a new dictionary and encode bytes according to it
@@ -63,9 +51,6 @@ public:
 	 */
 	std::string decode(const std::string& src) const;
 
-	void dictionary(const HuffmanDictionary& dictionary);
-	HuffmanDictionary dictionary() const;
-
 private:
-	HuffmanDictionary m_dictionary;
+	std::unique_ptr<huffman_tree_node> m_root;
 };
