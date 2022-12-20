@@ -24,7 +24,7 @@ set(COMMON_FLAGS "${COMMON_FLAGS} -Wundef")
 set(COMMON_FLAGS "${COMMON_FLAGS} -pedantic")
 set(COMMON_FLAGS "${COMMON_FLAGS} -Wno-gnu-statement-expression")
 set(COMMON_FLAGS "${COMMON_FLAGS} -Wno-pointer-arith")
-set(COMMON_FLAGS "${COMMON_FLAGS} -gdwarf-4")
+set(COMMON_FLAGS "${COMMON_FLAGS} -gdwarf-4") # Valgrind may have a problem if this is not set
 # set(COMMON_FLAGS "${COMMON_FLAGS} -Werror")
 
 set(COMMON_FLAGS "${COMMON_FLAGS} -pthread")
