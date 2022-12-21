@@ -17,7 +17,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'ppk-project-huffman'
-copyright = '2022, Michał Kostrzewski'
+copyright = '2023, Michał Kostrzewski'
 author = 'Michał Kostrzewski'
 
 

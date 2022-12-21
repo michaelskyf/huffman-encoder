@@ -8,14 +8,12 @@ Program uruchamiany jest z linii poleceń z wykorzystaniem następujących prze�
 -s plik ze słownikiem (tworzonym w czasie kompresji, używanym w czasie
 dekompresji)
 */
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <vector>
 #include <getopt.h>
-#include "huffman.hpp"
+#include <huffman.hpp>
 
 #ifndef VERSION
 #define VERSION "unknown"
@@ -41,9 +39,15 @@ options[] =
 	{'v', "version",		no_argument,		NULL,		"show the program's version"},
 };
 
-/**
- * @brief
- */
+static struct
+{
+	enum{not_specified, compression, decompression} mode = not_specified;
+	std::string dictionary_path{};
+	std::string input_path{};
+	std::string output_path{};
+}
+parsed_options{};
+
 static void print_help(const char* prog_name)
 {
 	auto print_element = [](const char shortopt, const char* longopt, int arg_type, const char* argname, const char* description)
@@ -103,17 +107,32 @@ static int parse_args(int argc, char* argv[])
 			break;
 
 			case 'i':
+				parsed_options.input_path = optarg;
 			break;
 
 			case 'o':
+				parsed_options.output_path = optarg;
 			break;
 
 			case 't':
 			case 'm':
+				if(*optarg == 'c')
+				{
+					parsed_options.mode = parsed_options.compression;
+				}
+				else if(*optarg == 'd')
+				{
+					parsed_options.mode = parsed_options.decompression;
+				}
+				else
+				{
+
+				}
 			break;
 
 			case 's':
 			case 'd':
+				parsed_options.dictionary_path = optarg;
 			break;
 
 			case '?':

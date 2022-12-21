@@ -9,7 +9,7 @@ TEST(huffman, encoding)
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
 	const std::vector<unsigned char> correctly_encoded_string = 
 	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
-	// More common bytes begin with 0, and less common with 1
+	// More frequent bytes begin with 0, and less common with 1
 
 	const auto encoded_string = coder.encode(test_string);
 
