@@ -26,6 +26,17 @@ TEST(huffman, encoding)
 	}
 }
 
+TEST(huffman, encoding_empty)
+{
+	HuffmanDictionary coder;
+	const std::string test_string{};
+
+	const auto encoded_string = coder.encode(test_string);
+
+	EXPECT_EQ(coder.is_initialized(), false);
+	EXPECT_EQ(encoded_string.size(), 0);
+}
+
 TEST(huffman, decoding)
 {
 	HuffmanDictionary coder;
@@ -48,4 +59,19 @@ TEST(huffman, decoding)
 	{
 		EXPECT_EQ(decoded_string[i], test_string[i]);
 	}
+}
+
+TEST(huffman, decoding_empty)
+{
+	HuffmanDictionary coder;
+	const std::string test_string{};
+	const std::basic_string<unsigned char> encoded_string{};
+
+	coder.encode(test_string);
+
+	EXPECT_EQ(coder.is_initialized(), false);
+
+	const auto decoded_string = coder.decode({encoded_string.begin(), encoded_string.end()});
+
+	EXPECT_EQ(decoded_string.size(), 0);
 }
