@@ -34,11 +34,14 @@ class HuffmanDictionary
 {
 public:
 	HuffmanDictionary() = default;
+	HuffmanDictionary(const huffman_tree_node& root);
 	HuffmanDictionary(const char* data, size_t size);
 	~HuffmanDictionary() = default;
 
 	HuffmanDictionary(const HuffmanDictionary&);
-	HuffmanDictionary(HuffmanDictionary&&) = default;
+	HuffmanDictionary(HuffmanDictionary&&);
+	HuffmanDictionary& operator=(const HuffmanDictionary&);
+	HuffmanDictionary& operator=(HuffmanDictionary&&);
 
 	/**
 	 * @brief				create a new dictionary from the given data
@@ -75,7 +78,7 @@ public:
 	 * @returns				encoded data
 	 * @throws				std::bad_alloc
 	 */
-	std::string encode(const std::string& src);
+	size_t encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset);
 
 	/**
 	 * @brief				decode given data using the dictionary

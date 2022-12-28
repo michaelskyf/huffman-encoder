@@ -1,5 +1,6 @@
 #include <map>
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include <huffman.hpp>
@@ -7,13 +8,16 @@
 using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
 
 huffman_tree_node::huffman_tree_node(char c, size_t freq)
-	:m_character{c}, m_frequency{freq}
+	:m_character{c},
+	m_frequency{freq}
 {
 
 }
 
 huffman_tree_node::huffman_tree_node(std::unique_ptr<huffman_tree_node>&& lhs, std::unique_ptr<huffman_tree_node>&& rhs, size_t freq)
-	:m_left{std::move(lhs)}, m_right{std::move(rhs)}, m_frequency{freq}
+	:m_left{std::move(lhs)},
+	m_right{std::move(rhs)},
+	m_frequency{freq}
 {
 
 }
@@ -21,6 +25,41 @@ huffman_tree_node::huffman_tree_node(std::unique_ptr<huffman_tree_node>&& lhs, s
 bool huffman_tree_node::is_character() const
 {
 	return !(m_left.get() || m_right.get());
+}
+
+huffman_tree_node::huffman_tree_node(const huffman_tree_node& node)
+{
+	*this = node;
+}
+
+huffman_tree_node::huffman_tree_node(huffman_tree_node&& node)
+{
+	*this = std::move(node);
+}
+
+huffman_tree_node& huffman_tree_node::operator=(const huffman_tree_node& node)
+{
+	m_character = node.m_character;
+	m_frequency = node.m_frequency;
+
+	if(node.m_left && node.m_right)
+	{
+		m_left = std::make_unique<huffman_tree_node>(*node.m_left);
+		m_right = std::make_unique<huffman_tree_node>(*node.m_right);
+	}
+
+	return *this;
+}
+
+huffman_tree_node& huffman_tree_node::operator=(huffman_tree_node&& node)
+{
+	m_character = node.m_character;
+	m_frequency = node.m_frequency;
+
+	m_left = std::move(node.m_left);
+	m_right = std::move(node.m_right);
+
+	return *this;
 }
 
 sorted_frequencies get_frequencies(const char* data, size_t size)
@@ -50,6 +89,43 @@ sorted_frequencies get_frequencies(const char* data, size_t size)
 	}
 
 	return result;
+}
+
+HuffmanDictionary::HuffmanDictionary(const huffman_tree_node& root)
+	: m_root{std::make_unique<huffman_tree_node>(root)}
+{
+	
+}
+
+HuffmanDictionary::HuffmanDictionary(const HuffmanDictionary& node)
+{
+	*this = node;
+}
+
+HuffmanDictionary::HuffmanDictionary(HuffmanDictionary&& node)
+{
+	*this = std::move(node);
+}
+
+HuffmanDictionary& HuffmanDictionary::operator=(const HuffmanDictionary& node)
+{
+	if(node.m_root)
+	{
+		m_root = std::make_unique<huffman_tree_node>(*node.m_root);
+	}
+	else
+	{
+		m_root = nullptr;
+	}
+	
+	return *this;
+}
+
+HuffmanDictionary& HuffmanDictionary::operator=(HuffmanDictionary&& node)
+{
+	m_root = std::move(node.m_root);
+	
+	return *this;
 }
 
 void HuffmanDictionary::create(const char* data, size_t size)
@@ -123,9 +199,14 @@ std::string HuffmanDictionary::encode(const std::string& src)
 		}
 	};
 
-	this->create(src.data(), src.size());
-
-	if(!this->is_initialized()) return {};
+	if(this->is_initialized() == false)
+	{
+		this->create(src.data(), src.size());
+		if(this->is_initialized() == false)
+		{
+			return {};
+		}
+	}
 
 	make_lookup_table(*this->m_root, 0, 0);
 
@@ -169,8 +250,15 @@ std::string HuffmanDictionary::decode(const std::string& src) const
 	{
 		uint8_t bits_left = 8;
 
-		while(bits_left != 0)
+		while(bits_left-- != 0)
 		{
+			if(c & 1)
+				current_node = current_node->m_left.get();
+			else
+				current_node = current_node->m_right.get();
+
+			c >>= 1;
+
 			if(current_node->is_character())
 			{
 				result.push_back(current_node->m_character);
@@ -179,16 +267,6 @@ std::string HuffmanDictionary::decode(const std::string& src) const
 				{
 					return result;
 				}
-			}
-			else
-			{
-				if(c & 1)
-					current_node = current_node->m_left.get();
-				else
-					current_node = current_node->m_right.get();
-
-				c >>= 1;
-				bits_left--;
 			}
 		}
 	}

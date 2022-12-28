@@ -8,16 +8,31 @@ Program uruchamiany jest z linii poleceń z wykorzystaniem następujących prze�
 -s plik ze słownikiem (tworzonym w czasie kompresji, używanym w czasie
 dekompresji)
 */
+#include <boost/json/parse_options.hpp>
+#include <boost/json/storage_ptr.hpp>
+#include <boost/json/stream_parser.hpp>
+#include <boost/json/value.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <memory>
+#include <ostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <getopt.h>
 #include <huffman.hpp>
+#include <boost/json/src.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #ifndef VERSION
 #define VERSION "unknown"
 #endif
+
+namespace pt = boost::property_tree;
 
 static struct
 {
@@ -45,6 +60,11 @@ static struct
 	std::string dictionary_path{};
 	std::string input_path{};
 	std::string output_path{};
+
+	bool is_initialized() const
+	{
+		return mode != not_specified && !dictionary_path.empty() && !input_path.empty() && !output_path.empty();
+	}
 }
 parsed_options{};
 
@@ -52,6 +72,7 @@ static void print_help(const char* prog_name)
 {
 	auto print_element = [](const char shortopt, const char* longopt, int arg_type, const char* argname, const char* description)
 	{
+		(void) arg_type;
 		std::cout << std::setfill(' ')
 			<< std::right << std::setw(4) << (shortopt ? std::string("-") + shortopt : "")
 			<< std::left << std::setw(25) << (longopt ? (shortopt ? "," : " ") + std::string(" --") + longopt + (argname ? std::string("=") + argname : "") : "")
@@ -126,7 +147,9 @@ static int parse_args(int argc, char* argv[])
 				}
 				else
 				{
-
+					std::cout << "Invalid mode" << std::endl;
+					print_help(argv[0]);
+					exit(EXIT_FAILURE);
 				}
 			break;
 
@@ -146,10 +169,118 @@ static int parse_args(int argc, char* argv[])
 		}
 	}
 
+	if(parsed_options.is_initialized() == false)
+	{
+		print_help(argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
 	return 0;
+}
+
+std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
+{
+	pt::ptree root;
+	pt::read_json(path, root);
+	std::unique_ptr<huffman_tree_node> result{};
+
+	std::function<std::unique_ptr<huffman_tree_node>(const pt::ptree&)> recursive_get =
+	[&](const pt::ptree& json_node)
+	{
+		auto new_node = std::make_unique<huffman_tree_node>();
+
+		try
+		{
+			new_node->m_frequency = json_node.get<size_t>("frequency");
+		}
+		catch(...)
+		{
+			return std::unique_ptr<huffman_tree_node>{};
+		}
+
+		try
+		{
+			new_node->m_left = recursive_get(json_node.get_child("left"));
+			new_node->m_right = recursive_get(json_node.get_child("right"));
+
+			if(!(new_node->m_left && new_node->m_right))
+			{
+				throw std::runtime_error("");
+			}
+		}
+		catch(...)
+		{
+			try
+			{
+				new_node->m_character = json_node.get<char>("character");
+			}
+			catch(...)
+			{
+				return std::unique_ptr<huffman_tree_node>{};
+			}
+		}
+
+		return new_node;
+	};
+
+	try
+	{
+		auto real_root = root.get_child("root");
+		result = recursive_get(real_root);
+	}
+	catch(...)
+	{
+
+	}
+
+	return result;
+}
+
+bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
+{
+	pt::ptree json_root, json_root_node;
+
+	std::function<void(pt::ptree&, const huffman_tree_node&)> recursive_put =
+	[&](pt::ptree& json_node, const huffman_tree_node& node)
+	{
+		if(node.is_character())
+		{
+			json_node.put("character", node.m_character);
+			json_node.put("frequency", node.m_frequency);
+		}
+		else if(node.m_left && node.m_right)
+		{
+			pt::ptree left, right;
+
+			recursive_put(left, *node.m_left);
+			recursive_put(right, *node.m_right);
+
+			json_node.add_child("left", left);
+			json_node.add_child("right", right);
+		}
+	};
+
+	recursive_put(json_root_node, root);
+
+	json_root.add_child("root", json_root_node);
+
+	pt::write_json(std::cout, json_root);
+	(void)path;
+
+	return true;
 }
 
 int main(int argc, char* argv[])
 {
 	parse_args(argc, argv);
+
+	if(parsed_options.mode == parsed_options.compression)
+	{
+		std::ifstream input_file(parsed_options.input_path);
+		std::ifstream output_file(parsed_options.output_path);
+	}
+	else
+	{
+
+	}
 }
