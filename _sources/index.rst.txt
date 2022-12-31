@@ -14,7 +14,7 @@ Welcome to ppk-project-huffman's documentation!
 Short summary of the project
 ============================
 
-This project can encode and decode a string of data by using given or internally generated dictionary .
+This project can encode and decode a string of data by using given or internally generated dictionary.
 
 History of the project
 ======================
