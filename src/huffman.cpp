@@ -1,7 +1,9 @@
+#include <limits>
 #include <map>
 #include <functional>
 #include <memory>
 #include <vector>
+#include <iostream>
 
 #include <huffman.hpp>
 
@@ -130,7 +132,61 @@ HuffmanDictionary& HuffmanDictionary::operator=(HuffmanDictionary&& node)
 
 void HuffmanDictionary::create(const char* data, size_t size)
 {
-	auto frequencies = get_frequencies(data, size);
+	m_root = {};
+	create_part(data, size);
+}
+
+const huffman_tree_node* HuffmanDictionary::data() const
+{
+	return m_root.get();
+}
+
+void HuffmanDictionary::create_part(const char* data, size_t size)
+{
+	sorted_frequencies frequencies = get_frequencies(data, size);
+	std::vector<std::pair<char, size_t>> old_frequencies;
+
+	std::function<void(const huffman_tree_node& node)> get_old_frequencies =
+	[&](const huffman_tree_node& node)
+	{
+		if(node.is_character())
+		{
+			old_frequencies.emplace_back(node.m_character, node.m_frequency);
+		}
+		else
+		{
+			get_old_frequencies(*node.m_left);
+			get_old_frequencies(*node.m_right);
+		}
+	};
+
+	if(is_initialized())
+	{
+		get_old_frequencies(*m_root);
+
+		for(const auto& old_freq : old_frequencies)
+		{
+			bool set = false;
+			for(auto& new_freq : frequencies)
+			{
+				if(new_freq->m_character == old_freq.first)
+				{
+					new_freq->m_frequency += old_freq.second;
+					set = true;
+					break;
+				}
+			}
+
+			if(set == false)
+			{
+				frequencies.emplace(std::find_if(frequencies.begin(),
+								frequencies.end(),
+								[&](const std::unique_ptr<huffman_tree_node>& n)
+								{ return n->m_frequency >= old_freq.second; }),
+								std::make_unique<huffman_tree_node>(old_freq.first, old_freq.second));
+			}
+		}
+	}
 
 	while(frequencies.size() > 1)
 	{
@@ -166,9 +222,8 @@ bool HuffmanDictionary::is_initialized() const
 	return m_root.get();
 }
 
-std::string HuffmanDictionary::encode(const std::string& src)
+std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset)
 {
-	std::string result{};
 	std::map<char, std::pair<char, uint8_t>> lookup_table{};
 
 	// When travelling down the tree the code reversed, so we need to reverse it once again
@@ -199,77 +254,135 @@ std::string HuffmanDictionary::encode(const std::string& src)
 		}
 	};
 
-	if(this->is_initialized() == false)
+	if(this->is_initialized() == false || src_size == 0 || dst_size == 0)
 	{
-		this->create(src.data(), src.size());
-		if(this->is_initialized() == false)
-		{
-			return {};
-		}
+		return {0, 0};
+	}
+
+	if(src_size > std::numeric_limits<size_t>::max()/8)
+	{
+		src_size = std::numeric_limits<size_t>::max()/8;
 	}
 
 	make_lookup_table(*this->m_root, 0, 0);
 
-	uint8_t buf_cnt = 0;
-	unsigned char c_buf = 0;
-	for(char c : src)
+	size_t used_bits = offset % 8;
+	size_t dst_index = offset / 8;
+	char byte = dst[dst_index];
+
+	for(size_t i = 0; i < src_size; i++)
 	{
-		const auto& code = lookup_table.at(c);
+		std::pair<char, uint8_t> code;
+		char c = src[i];
+		int space_left;
 
-		int space_left = 8 - buf_cnt - code.second;
+		try
+		{
+			code = lookup_table.at(c);
+		}
+		catch(...)
+		{
+			return {0, 0};
+		}
 
-		c_buf |= code.first << buf_cnt;
+		space_left = 8 - used_bits - code.second;
+
+		byte |= code.first << used_bits;
 
 		if(space_left <= 0)
 		{
-			result.push_back(c_buf);
-			c_buf = 0 | (code.first >> (8-buf_cnt));
-			buf_cnt = -space_left;
+			if(dst_size--)
+			{
+				dst[dst_index++] = byte;
+				byte = (dst_size ? dst[dst_index] >> used_bits : 0) | (code.first >> (8-used_bits));
+				used_bits = -space_left;
+			}
+			else
+			{
+				return {i, dst_index*8};
+			}
 		}
 		else
 		{
-			buf_cnt = 8 - space_left;
+			used_bits = 8 - space_left;
 		}
 	}
 
-	if(buf_cnt)
-		result.push_back(c_buf);
+	if(used_bits && dst_size)
+	{
+		dst[dst_index] = byte;
+		return {src_size, dst_index*8 + used_bits};
+	}
 
-	return result;
+	return {src_size, dst_index*8};
 }
 
-std::string HuffmanDictionary::decode(const std::string& src) const
+std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset_start, size_t src_offset_end)
 {
-	if(!this->is_initialized()) return {};
-	
-	std::string result{};
-
-	size_t characters_left = this->size();
-	const huffman_tree_node* current_node = this->m_root.get();
-	for(char c : src)
+	if(!this->is_initialized())
 	{
-		uint8_t bits_left = 8;
+		return {0, 0};
+	}
 
-		while(bits_left-- != 0)
+	if(src_offset_end != 0 && src_size != 0)
+	{
+		src_size--;
+	}
+
+	size_t src_index = src_offset_start / 8;
+	size_t bits_left = src_offset_start % 8;
+	size_t dst_index = 0;
+	char byte = src[src_index] >> (8 - bits_left);
+	const huffman_tree_node* current_node = this->m_root.get();
+
+	while(true)
+	{
+		while(bits_left)
 		{
-			if(c & 1)
-				current_node = current_node->m_left.get();
-			else
-				current_node = current_node->m_right.get();
+			if(!current_node->is_character())
+			{
+				if(byte & 1)
+				{
+					current_node = current_node->m_left.get();
+				}
+				else
+				{
+					current_node = current_node->m_right.get();
+				}
 
-			c >>= 1;
+				bits_left--;
+				byte >>= 1;
+			}
 
 			if(current_node->is_character())
 			{
-				result.push_back(current_node->m_character);
-				current_node = this->m_root.get();
-				if(--characters_left == 0) // When a dictionary is initialized, it has at least one character
+				if(dst_index >= dst_size)
 				{
-					return result;
+					return {src_index*8+(8-bits_left), dst_index};
 				}
+
+				dst[dst_index++] = current_node->m_character;
+				current_node = this->m_root.get();
 			}
 		}
-	}
 
-	return result;
+		if(src_index >= src_size)
+		{
+			if(src_offset_end == 0)
+			{
+				return {src_index*8+(8-bits_left), dst_index};
+			}
+			else
+			{
+				byte = src[src_index++];
+				bits_left = src_offset_end;
+				src_offset_end = 0;
+			}
+		}
+		else
+		{
+			byte = src[src_index++];
+			bits_left = 8;
+		}
+	}
 }

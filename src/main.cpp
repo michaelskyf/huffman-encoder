@@ -14,6 +14,7 @@ dekompresji)
 #include <boost/json/value.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -47,7 +48,7 @@ options[] =
 	{'h', "help",			no_argument,		NULL,		"display this message and exit"},
 	{'i', "input",			required_argument,	"FILE",		"input file (only one)"},
 	{'o', "output",			required_argument,	"FILE",		"output file (only one)"},
-	{'m', "mode",			required_argument,	"MODE",		"'k' for compression, 'd' for decompression"},
+	{'m', "mode",			required_argument,	"MODE",		"'c' or 'k' for compression, 'd' for decompression"},
 	{'t', NULL,				required_argument,	"",			"same as --mode (added to meet project's specifications)"},
 	{'d', "dictionary",		required_argument,	"FILE",		"file to read/write the dictionary"},
 	{'s', NULL,				required_argument,	"FILE",		"same as --dictionary (added to meet project's specifications)"},
@@ -137,7 +138,7 @@ static int parse_args(int argc, char* argv[])
 
 			case 't':
 			case 'm':
-				if(*optarg == 'c')
+				if(*optarg == 'c' || *optarg == 'k')
 				{
 					parsed_options.mode = parsed_options.compression;
 				}
@@ -239,6 +240,7 @@ std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
 bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 {
 	pt::ptree json_root, json_root_node;
+	std::ofstream file{path};
 
 	std::function<void(pt::ptree&, const huffman_tree_node&)> recursive_put =
 	[&](pt::ptree& json_node, const huffman_tree_node& node)
@@ -264,6 +266,7 @@ bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 
 	json_root.add_child("root", json_root_node);
 
+	//pt::write_json(file, json_root);
 	pt::write_json(std::cout, json_root);
 	(void)path;
 
@@ -276,8 +279,59 @@ int main(int argc, char* argv[])
 
 	if(parsed_options.mode == parsed_options.compression)
 	{
+		char read_buffer[1024], write_buffer[1024];
 		std::ifstream input_file(parsed_options.input_path);
-		std::ifstream output_file(parsed_options.output_path);
+		std::ofstream output_file(parsed_options.output_path);
+		HuffmanDictionary dictionary;
+
+		if(!input_file || !output_file)
+		{
+			// TODO
+			exit(EXIT_FAILURE);
+		}
+
+		size_t read_bytes;
+		while((read_bytes = input_file.readsome(read_buffer, sizeof(read_buffer))))
+		{
+			dictionary.create_part(read_buffer, read_bytes);
+		}
+
+		input_file.seekg(0);
+
+		size_t offset = 0;
+		while((read_bytes = input_file.readsome(read_buffer, sizeof(read_buffer))))
+		{
+			memset(write_buffer, 0, sizeof(write_buffer));
+			offset = dictionary.encode(read_buffer, read_bytes, write_buffer, sizeof(write_buffer), offset).second;
+			size_t buffer_fill = offset/8;
+			offset -= (offset/8)*8;
+
+			if(!output_file.write(write_buffer, buffer_fill))
+			{
+				// TODO
+				exit(EXIT_FAILURE);
+			}
+
+			memmove(write_buffer, write_buffer+buffer_fill, 1);
+		}
+
+		if(offset)
+		{
+			if(!output_file.write(write_buffer, 1))
+			{
+				// TODO
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		if(!write_huffman_tree_json(parsed_options.dictionary_path.c_str(), *dictionary.data()))
+		{
+			// TODO
+			exit(EXIT_FAILURE);
+		}
+
+		output_file.close();
+		input_file.close();
 	}
 	else
 	{

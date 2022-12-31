@@ -50,6 +50,14 @@ public:
 	 * @throws				std::bad_alloc
 	 */
 	void create(const char* data, size_t size);
+
+	/**
+	 * @brief				create a new dictionary from the given data
+	 * @param[in]	data	pointer to data
+	 * @param[in]	size	size of data
+	 * @throws				std::bad_alloc
+	 */
+	void create_part(const char* data, size_t size);
 	
 	/**
 	 * @brief				get number of characters (sum of all frequencies) in the dictionary
@@ -78,7 +86,7 @@ public:
 	 * @returns				encoded data
 	 * @throws				std::bad_alloc
 	 */
-	size_t encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset);
+	std::pair<size_t, size_t> encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset = 0);
 
 	/**
 	 * @brief				decode given data using the dictionary
@@ -86,7 +94,7 @@ public:
 	 * @returns				decoded data
 	 * @throws				std::bad_alloc
 	 */
-	std::string decode(const std::string& src) const;
+	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset_start = 0, size_t src_offset_end = 0);
 
 private:
 	std::unique_ptr<huffman_tree_node> m_root;
