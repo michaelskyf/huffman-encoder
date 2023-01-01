@@ -29,7 +29,7 @@ jobs:
         run: git submodule update --init
 
       - name: Install dependencies
-        run: sudo apt install libgtest-dev libgmock-dev valgrind
+        run: sudo apt install libgtest-dev libgmock-dev valgrind libboost-all-dev
 
       - name: Run CMake
         run: cmake . -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
