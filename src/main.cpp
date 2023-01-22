@@ -172,6 +172,23 @@ static int parse_args(int argc, char* argv[])
 
 	if(parsed_options.is_initialized() == false)
 	{
+		if(parsed_options.dictionary_path.empty())
+		{
+			std::cerr << "Error: No dictionary path." << std::endl;
+		}
+		if(parsed_options.input_path.empty())
+		{
+			std::cerr << "Error: No input path." << std::endl;
+		}
+		if(parsed_options.output_path.empty())
+		{
+			std::cerr << "Error: No output path." << std::endl;
+		}
+		if(parsed_options.mode == parsed_options.not_specified)
+		{
+			std::cerr << "Error: Mode not specified." << std::endl;
+		}
+
 		print_help(argv[0]);
 		exit(EXIT_FAILURE);
 	}
@@ -245,10 +262,12 @@ bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 	std::function<void(pt::ptree&, const huffman_tree_node&)> recursive_put =
 	[&](pt::ptree& json_node, const huffman_tree_node& node)
 	{
+
+		json_node.put("frequency", node.m_frequency);
+
 		if(node.is_character())
 		{
 			json_node.put("character", node.m_character);
-			json_node.put("frequency", node.m_frequency);
 		}
 		else if(node.m_left && node.m_right)
 		{
@@ -271,16 +290,13 @@ bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 	return true;
 }
 
-int main(int argc, char* argv[])
+void compress()
 {
-	parse_args(argc, argv);
-
-	if(parsed_options.mode == parsed_options.compression)
-	{
 		char read_buffer[1024], write_buffer[1024];
 		std::ifstream input_file(parsed_options.input_path);
 		std::ofstream output_file(parsed_options.output_path);
 		HuffmanDictionary dictionary;
+		size_t read_bytes;
 
 		if(!input_file || !output_file)
 		{
@@ -288,9 +304,14 @@ int main(int argc, char* argv[])
 			exit(EXIT_FAILURE);
 		}
 
-		size_t read_bytes;
-		while((read_bytes = input_file.readsome(read_buffer, sizeof(read_buffer))))
+		while(true)
 		{
+			input_file.read(read_buffer, sizeof(read_buffer));
+			if(!(read_bytes = input_file.gcount()))
+			{
+				break;
+			}
+
 			dictionary.create_part(read_buffer, read_bytes);
 		}
 
@@ -300,19 +321,20 @@ int main(int argc, char* argv[])
 			exit(EXIT_FAILURE);
 		}
 
-		input_file.seekg(0);
+		input_file.clear();
+		input_file.seekg(std::ios_base::beg);
 
 		size_t offset = 0;
-		while((read_bytes = input_file.readsome(read_buffer, sizeof(read_buffer))))
+		while(true)
 		{
 			input_file.read(read_buffer, sizeof(read_buffer));
-			if((read_bytes = input_file.gcount()))
+			if(!(read_bytes = input_file.gcount()))
 			{
 				break;
 			}
 
-			memset(write_buffer, 0, sizeof(write_buffer));
-			offset = dictionary.encode(read_buffer, read_bytes, write_buffer, sizeof(write_buffer), offset).second;
+			auto result = dictionary.encode(read_buffer, read_bytes, write_buffer, sizeof(write_buffer), offset);
+			offset = result.second;
 			size_t buffer_fill = offset/8;
 			offset -= (offset/8)*8;
 
@@ -342,9 +364,67 @@ int main(int argc, char* argv[])
 
 		output_file.close();
 		input_file.close();
+}
+
+void decompress()
+{
+	char read_buffer[1024], write_buffer[1024];
+	std::ifstream input_file(parsed_options.input_path);
+	std::ofstream output_file(parsed_options.output_path);
+	HuffmanDictionary dictionary;
+	size_t to_read;
+	auto htptr = read_huffman_tree_json(parsed_options.dictionary_path.c_str());
+	if(htptr)
+	{
+		dictionary = {*htptr};
+		htptr.reset();
 	}
 	else
 	{
+		std::cerr << "Failed to load dictionary" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
+	to_read = dictionary.size();
+
+	size_t read_bytes;
+	if(!input_file || !output_file)
+	{
+		std::cerr << "Failed to open input or output file" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	size_t offset = 0;
+	while(to_read)
+	{
+		input_file.read(read_buffer, sizeof(read_buffer));
+		if(!(read_bytes = input_file.gcount()))
+		{
+			break;
+		}
+		
+		auto result = dictionary.decode(read_buffer, read_bytes, write_buffer, std::min(to_read, sizeof(write_buffer)), offset);
+		offset = result.first % 8;
+		to_read -= result.first / 8;
+
+		if(!output_file.write(write_buffer, result.second))
+		{
+			std::cerr << "Failed to write to output file" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+}
+
+int main(int argc, char* argv[])
+{
+	parse_args(argc, argv);
+
+	if(parsed_options.mode == parsed_options.compression)
+	{
+		compress();
+	}
+	else
+	{
+		decompress();
 	}
 }

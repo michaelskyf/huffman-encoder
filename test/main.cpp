@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <string>
 
@@ -133,7 +134,7 @@ TEST(huffman, decoding)
 
 	coder.create(test_string.c_str(), test_string.size());
 
-	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer), 0, 2);
+	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, std::min(coder.size(), sizeof(buffer)));
 
 	EXPECT_EQ(test_string.size(), decoded_offset.second);
 
@@ -162,4 +163,73 @@ TEST(huffman, decoding_empty)
 	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer));
 
 	EXPECT_EQ(decoded_offset.second, 0);
+}
+
+TEST(huffman, long_text)
+{
+	const std::string original = 
+		"Get your motor runnin'\n"
+		"Head out on the highway\n"
+		"Looking for adventure\n"
+		"In whatever comes our way\n"
+		"Yeah, darlin' gonna make it happen\n"
+		"Take the world in a love embrace\n"
+		"Fire all of your guns at once\n"
+		"And explode into space\n"
+		"I like smoke and lightnin'\n"
+		"Heavy metal thunder\n"
+		"Racing with the wind\n"
+		"And the feeling that I'm under\n"
+		"Yeah, darlin' gonna make it happen\n"
+		"Take the world in a love embrace\n"
+		"Fire all of your guns at once\n"
+		"And explode into space\n"
+		"Like a true nature's child\n"
+		"We were born\n"
+		"Born to be wild\n"
+		"We can climb so high\n"
+		"I never wanna die\n"
+		"Born to be wild\n"
+		"Born to be wild\n"
+		"Get your motor runnin'\n"
+		"Head out on the highway\n"
+		"Looking for adventure\n"
+		"In whatever comes our way\n"
+		"Yeah, darlin' gonna make it happen\n"
+		"Take the world in a love embrace\n"
+		"Fire all of your guns at once\n"
+		"And explode into space\n"
+		"Like a true nature's child\n"
+		"We were born\n"
+		"Born to be wild\n"
+		"We can climb so high\n"
+		"I never wanna die\n"
+		"Born to be wild\n"
+		"Born to be wild";
+
+	HuffmanDictionary dictionary;
+	dictionary.create(original.data(), original.size());
+
+	if(!dictionary.is_initialized())
+	{
+		FAIL();
+	}
+	
+	std::string encoded;
+	encoded.resize(dictionary.size());
+	auto encode_result = dictionary.encode(original.data(), original.size(), encoded.data(), encoded.size());
+	if(encode_result.first != original.size())
+	{
+		FAIL();
+	}
+
+	std::string decoded;
+	decoded.resize(dictionary.size());
+	auto decode_result = dictionary.decode(encoded.data(), encoded.size(), decoded.data(), decoded.size());
+	if(decode_result.second != dictionary.size())
+	{
+		FAIL();
+	}
+
+	EXPECT_EQ(original, decoded);
 }

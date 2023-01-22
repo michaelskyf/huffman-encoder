@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <limits>
 #include <map>
 #include <functional>
@@ -224,12 +225,12 @@ bool HuffmanDictionary::is_initialized() const
 
 std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset)
 {
-	std::map<char, std::pair<char, uint8_t>> lookup_table{};
+	std::map<char, std::pair<uint64_t , uint8_t>> lookup_table{};
 
 	// When travelling down the tree the code reversed, so we need to reverse it once again
-	auto reverse_code = [](char code, uint8_t depth)
+	auto reverse_code = [](uint64_t code, uint8_t depth)
 	{
-		char new_code = 0;
+		uint64_t new_code = 0;
 		while(depth--)
 		{
 			new_code |= (code & 1) << depth;
@@ -240,8 +241,8 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 	};
 	
 	// Fills up an std::map that contains information to translate characters into their corresponding code
-	std::function<void(const huffman_tree_node& node, char code, uint8_t depth)> make_lookup_table =
-	[&](const huffman_tree_node& node, char code, uint8_t depth)
+	std::function<void(const huffman_tree_node& node, uint64_t code, uint8_t depth)> make_lookup_table =
+	[&](const huffman_tree_node& node, uint64_t code, uint8_t depth)
 	{
 		if(node.is_character())
 		{
@@ -268,11 +269,11 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 	size_t used_bits = offset % 8;
 	size_t dst_index = offset / 8;
-	char byte = dst[dst_index];
+	char byte = 0 | (dst[dst_index] & ~(-1 << used_bits));
 
 	for(size_t i = 0; i < src_size; i++)
 	{
-		std::pair<char, uint8_t> code;
+		std::pair<uint64_t, uint8_t> code;
 		char c = src[i];
 		int space_left;
 
@@ -294,7 +295,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 			if(dst_size--)
 			{
 				dst[dst_index++] = byte;
-				byte = (dst_size ? dst[dst_index] >> used_bits : 0) | (code.first >> (8-used_bits));
+				byte = 0 | (code.first >> (8-used_bits));
 				used_bits = -space_left;
 			}
 			else
@@ -317,20 +318,15 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 	return {src_size, dst_index*8};
 }
 
-std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset_start, size_t src_offset_end)
+std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset)
 {
 	if(!this->is_initialized())
 	{
 		return {0, 0};
 	}
 
-	if(src_offset_end != 0 && src_size != 0)
-	{
-		src_size--;
-	}
-
-	size_t src_index = src_offset_start / 8;
-	size_t bits_left = src_offset_start % 8;
+	size_t src_index = src_offset / 8;
+	size_t bits_left = src_offset % 8;
 	size_t dst_index = 0;
 	char byte = src[src_index] >> (8 - bits_left);
 	const huffman_tree_node* current_node = this->m_root.get();
@@ -366,23 +362,14 @@ std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_
 			}
 		}
 
-		if(src_index >= src_size)
-		{
-			if(src_offset_end == 0)
-			{
-				return {src_index*8+(8-bits_left), dst_index};
-			}
-			else
-			{
-				byte = src[src_index++];
-				bits_left = src_offset_end;
-				src_offset_end = 0;
-			}
-		}
-		else
+		if(src_index < src_size)
 		{
 			byte = src[src_index++];
 			bits_left = 8;
+		}
+		else
+		{
+			return {src_index*8+(8-bits_left), dst_index};
 		}
 	}
 }

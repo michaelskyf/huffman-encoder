@@ -3,8 +3,6 @@
 #include <memory>
 #include <string>
 
-class HuffmanDictionary;
-
 struct huffman_tree_node
 {
 	huffman_tree_node() = default;
@@ -94,7 +92,7 @@ public:
 	 * @returns				decoded data
 	 * @throws				std::bad_alloc
 	 */
-	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset_start = 0, size_t src_offset_end = 0);
+	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset = 0);
 
 private:
 	std::unique_ptr<huffman_tree_node> m_root;
