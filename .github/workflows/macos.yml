@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - {name: GCC, cc: gcc, cxx: g++}
-          - {name: Clang, cc: clang, cxx: clang++}
+          - {name: GCC, cxx: g++}
+          - {name: Clang, cxx: clang++}
 
     steps:
       - name: Checkout respository
@@ -29,13 +29,10 @@ jobs:
         run: git submodule update --init
 
       - name: Install dependencies
-        run: brew install googletest boost
+        run: brew install googletest boost@1.76
 
       - name: Run CMake
-        run: cmake . -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
-
-      - name: Build the project
-        run: make
+        run: cmake . -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
 
       - name: Run tests
-        run: make test
+        run: make all test

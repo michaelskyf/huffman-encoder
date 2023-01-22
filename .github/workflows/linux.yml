@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - {name: GCC, cc: gcc, cxx: g++}
-          - {name: Clang, cc: clang, cxx: clang++}
+          - {name: GCC, cxx: g++}
+          - {name: Clang, cxx: clang++}
 
     steps:
       - name: Checkout respository
@@ -32,14 +32,11 @@ jobs:
         run: sudo apt install libgtest-dev libgmock-dev valgrind libboost-all-dev
 
       - name: Run CMake
-        run: cmake . -DCMAKE_C_COMPILER=${{matrix.compiler.cc}} -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
-
-      - name: Build the project
-        run: make
+        run: cmake . -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
 
       - name: Run tests
         id: runTests
-        run: make ExperimentalMemCheck
+        run: make all ExperimentalMemCheck
 
       - name: Read valgrind logs
         if: success() || failure()

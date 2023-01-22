@@ -8,11 +8,10 @@ add_executable(
 
 target_link_libraries(
 	${TEST_EXECUTABLE}
+	PRIVATE
 	GTest::GTest
 	GTest::gtest_main
 	)
-
-gtest_discover_tests(${TEST_EXECUTABLE})
 
 find_program(VALGRIND "valgrind")
 if(VALGRIND)
@@ -23,3 +22,8 @@ if(VALGRIND)
 	include(Dart)
 
 endif()
+
+include(GoogleTest)
+find_package(GTest REQUIRED)
+
+gtest_discover_tests(${TEST_EXECUTABLE})

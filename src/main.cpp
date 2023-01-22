@@ -266,9 +266,7 @@ bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 
 	json_root.add_child("root", json_root_node);
 
-	//pt::write_json(file, json_root);
-	pt::write_json(std::cout, json_root);
-	(void)path;
+	pt::write_json(file, json_root);
 
 	return true;
 }
@@ -286,7 +284,7 @@ int main(int argc, char* argv[])
 
 		if(!input_file || !output_file)
 		{
-			// TODO
+			std::cerr << "Failed to open input or output file" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -296,11 +294,23 @@ int main(int argc, char* argv[])
 			dictionary.create_part(read_buffer, read_bytes);
 		}
 
+		if(!dictionary.is_initialized())
+		{
+			std::cerr << "Failed to initialize dictionary" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
 		input_file.seekg(0);
 
 		size_t offset = 0;
 		while((read_bytes = input_file.readsome(read_buffer, sizeof(read_buffer))))
 		{
+			input_file.read(read_buffer, sizeof(read_buffer));
+			if((read_bytes = input_file.gcount()))
+			{
+				break;
+			}
+
 			memset(write_buffer, 0, sizeof(write_buffer));
 			offset = dictionary.encode(read_buffer, read_bytes, write_buffer, sizeof(write_buffer), offset).second;
 			size_t buffer_fill = offset/8;
@@ -308,7 +318,7 @@ int main(int argc, char* argv[])
 
 			if(!output_file.write(write_buffer, buffer_fill))
 			{
-				// TODO
+				std::cerr << "Failed to write to output file" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 
@@ -319,14 +329,14 @@ int main(int argc, char* argv[])
 		{
 			if(!output_file.write(write_buffer, 1))
 			{
-				// TODO
+				std::cerr << "Failed to write to output file" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 		}
 
 		if(!write_huffman_tree_json(parsed_options.dictionary_path.c_str(), *dictionary.data()))
 		{
-			// TODO
+			std::cerr << "Failed to write dictionary" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
