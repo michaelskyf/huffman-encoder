@@ -50,7 +50,7 @@ public:
 	void create(const char* data, size_t size);
 
 	/**
-	 * @brief				create a new dictionary from the given data
+	 * @brief				create a new dictionary from the given data (partially)
 	 * @param[in]	data	pointer to data
 	 * @param[in]	size	size of data
 	 * @throws				std::bad_alloc
@@ -58,39 +58,47 @@ public:
 	void create_part(const char* data, size_t size);
 	
 	/**
-	 * @brief				get number of characters (sum of all frequencies) in the dictionary
-	 * @returns 			0 if the tree is not initialized, otherwise number of characters in the tree
+	 * @brief				get sum of all frequencies in the dictionary
+	 * @returns 			0 if the tree is not initialized, otherwise sum of all frequencies in the tree
 	 * @throws				nothing
 	 */
 	size_t size() const;
 
 	/**
-	 * @brief				check if the dictionary is initialized ( same as size() )
+	 * @brief				check if the dictionary is initialized ( same as size() != 0 )
 	 * @returns				true if initialized, otherwise false
 	 * @throws				nothing
 	 */
 	bool is_initialized() const;
 
 	/**
-	 * @brief				TODO
+	 * @brief				return a pointer to the root node
 	 * @returns				nullptr if the tree is not initialized, otherwise a pointer to the root node
 	 * @throws				nothing
 	 */
 	const huffman_tree_node* data() const;
 
 	/**
-	 * @brief				create a new dictionary and encode the data according to it
-	 * @param[in]	src		data
-	 * @returns				encoded data
-	 * @throws				std::bad_alloc
+	 * @brief						create a new dictionary (if not already initialized) and encode the data according to it
+	 * @param[in]		src			source
+	 * @param[in]		src_size	sourcec size
+	 * @param[in, out]	dst			destination
+	 * @param[in]		dst_size	destination size
+	 * @param[in]		offset		numer of bits to skip from the first byte of source
+	 * @returns						number of bytes read from src (first) and number of bits written to dst (the last byte may be partially written) (second)
+	 * @throws						std::bad_alloc
 	 */
 	std::pair<size_t, size_t> encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset = 0);
 
 	/**
-	 * @brief				decode given data using the dictionary
-	 * @param[in]	src		encoded data
-	 * @returns				decoded data
-	 * @throws				std::bad_alloc
+	 * @brief						decode given data using the dictionary
+	 * @param[in]		src			source
+	 * @param[in]		src_size	sourcec size
+	 * @param[in, out]	dst			destination
+	 * @param[in]		dst_size	destination size
+	 * @param[in]		src_offset	numer of bits to skip from the first byte of source
+	 * @returns						number of bits read from src (first) and number of bytes written to dst (second)
+	 * @throws						std::bad_alloc
 	 */
 	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset = 0);
 
