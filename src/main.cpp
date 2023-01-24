@@ -16,6 +16,7 @@ dekompresji)
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #include <iomanip>
 #include <memory>
@@ -325,6 +326,7 @@ void compress()
 		input_file.seekg(std::ios_base::beg);
 
 		size_t offset = 0;
+		size_t buffer_fill;
 		while(true)
 		{
 			input_file.read(read_buffer, sizeof(read_buffer));
@@ -333,18 +335,28 @@ void compress()
 				break;
 			}
 
-			auto result = dictionary.encode(read_buffer, read_bytes, write_buffer, sizeof(write_buffer), offset);
-			offset = result.second;
-			size_t buffer_fill = offset/8;
-			offset -= (offset/8)*8;
-
-			if(!output_file.write(write_buffer, buffer_fill))
+			char* r_buf = read_buffer;
+			while(read_bytes)
 			{
-				std::cerr << "Failed to write to output file" << std::endl;
-				exit(EXIT_FAILURE);
+				auto result = dictionary.encode(r_buf, read_bytes, write_buffer, sizeof(write_buffer), offset);
+				offset = result.second;
+				buffer_fill = offset/8;
+				offset -= (offset/8)*8;
+
+				if(!output_file.write(write_buffer, buffer_fill))
+				{
+					std::cerr << "Failed to write to output file" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+				read_bytes -= result.first;
+				r_buf += result.first;
 			}
 
-			memmove(write_buffer, write_buffer+buffer_fill, 1);
+			if(offset)
+			{
+				memmove(write_buffer, write_buffer+buffer_fill, 1);
+			}
 		}
 
 		if(offset)
@@ -395,22 +407,42 @@ void decompress()
 	}
 
 	size_t offset = 0;
+	size_t second_offset = 0;
 	while(to_read)
 	{
-		input_file.read(read_buffer, sizeof(read_buffer));
+		size_t b_size = sizeof(read_buffer) - (offset ? 1 : 0);
+		char* b_ptr = read_buffer + (offset ? 1 : 0);
+		input_file.read(b_ptr, b_size);
 		if(!(read_bytes = input_file.gcount()))
 		{
 			break;
 		}
-		
-		auto result = dictionary.decode(read_buffer, read_bytes, write_buffer, std::min(to_read, sizeof(write_buffer)), offset);
-		offset = result.first % 8;
-		to_read -= result.first / 8;
 
-		if(!output_file.write(write_buffer, result.second))
+		char* r_buff = read_buffer;
+		while(read_bytes)
 		{
-			std::cerr << "Failed to write to output file" << std::endl;
-			exit(EXIT_FAILURE);
+			std::cout << "\n1:\nOffset: " << offset << "\nto_read: " << to_read << "\n\n";
+
+			auto result = dictionary.decode(r_buff, read_bytes, write_buffer, std::min(to_read, sizeof(write_buffer)), offset);
+			offset = result.first % 8;
+			to_read -= result.first / 8;
+
+			std::cout << "\n2:\nOffset: " << offset << "\nto_read: " << to_read << "\n/8: " << result.first/8 << "\nwritten: " << result.second <<"\n\n";
+
+			if(!output_file.write(write_buffer, result.second))
+			{
+				std::cerr << "Failed to write to output file" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			second_offset = result.first/8;
+			read_bytes -= second_offset;
+			r_buff += second_offset;
+
+			if(offset)
+			{
+				memmove(read_buffer, r_buff+1, 1);
+			}
 		}
 	}
 }
