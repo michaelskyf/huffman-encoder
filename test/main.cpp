@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 #include <gtest/gtest.h>
 #include <string>
 
@@ -134,7 +135,7 @@ TEST(huffman, decoding)
 
 	coder.create(test_string.c_str(), test_string.size());
 
-	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, std::min(coder.size(), sizeof(buffer)));
+	auto decoded_offset = coder.decode((unsigned char*)encoded_string.c_str(), encoded_string.size(), buffer, std::min(coder.size(), sizeof(buffer)));
 
 	EXPECT_EQ(test_string.size(), decoded_offset.second);
 
@@ -160,7 +161,7 @@ TEST(huffman, decoding_empty)
 
 	EXPECT_EQ(coder.is_initialized(), false);
 
-	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer));
+	auto decoded_offset = coder.decode((unsigned char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer));
 
 	EXPECT_EQ(decoded_offset.second, 0);
 }
@@ -185,7 +186,7 @@ void test_string(const std::string& original)
 
 	std::string decoded;
 	decoded.resize(dictionary.size());
-	auto decode_result = dictionary.decode(encoded.data(), encoded.size(), decoded.data(), decoded.size());
+	auto decode_result = dictionary.decode((unsigned char*)encoded.data(), encoded.size(), decoded.data(), decoded.size());
 	if(decode_result.second != dictionary.size())
 	{
 		FAIL();
@@ -247,4 +248,115 @@ TEST(huffman, long_text)
 	{
 		test_string(txt);
 	}
+}
+
+TEST(huffman, split_text)
+{
+	std::string original_txt =
+		"AAAAAAAAAAAAABBBBBBBBBBCCCCCCCCCCCCDDDDDDDDDDDDDFFFFFFFFFFFFFUUUUUUUUggggggggggggg";
+	std::string encoded_txt;
+	std::string decoded_txt; // Final result
+
+	HuffmanDictionary dictionary(original_txt.data(), original_txt.size());
+	unsigned char read_buffer[2]; // Buffer for reading
+	char write_buffer[2]; // Buffer for writing
+
+	EXPECT_TRUE(dictionary.is_initialized());
+	if(!dictionary.is_initialized())
+	{
+		FAIL();
+	}
+
+	// "read" from the original_text
+	size_t original_pos = 0;
+	size_t original_size_left = original_txt.size();
+	size_t offset = 0;
+	while(size_t read_cnt = original_txt.copy((char*)read_buffer, std::min(original_size_left, sizeof(read_buffer)), original_pos))
+	{
+		char* read_buffer_ptr = (char*)read_buffer;
+		original_pos += read_cnt;
+		original_size_left -= read_cnt;
+
+		while(read_cnt)
+		{
+			char byte_save = *write_buffer;
+			auto result = dictionary.encode(read_buffer_ptr, read_cnt, write_buffer, sizeof(write_buffer), offset);
+			
+			EXPECT_EQ((char)(byte_save << (8-offset)), (char)((*write_buffer) << (8-offset)));
+			
+			size_t to_write = result.second / 8;
+
+			size_t old_size = encoded_txt.size();
+			EXPECT_EQ(encoded_txt.append(write_buffer, to_write).size() - old_size, to_write);
+
+			if(offset)
+			{
+				memmove(write_buffer, write_buffer+to_write, 1);
+			}
+
+			read_buffer_ptr += result.first;
+			read_cnt -= result.first;
+			offset = result.second % 8;
+		}
+	}
+
+	// If there's offset, write the last byte
+	if(offset)
+	{
+		size_t old_size = encoded_txt.size();
+		EXPECT_EQ(encoded_txt.append(write_buffer, 1).size() - old_size, 1);
+	}
+
+	// Decode the string
+	size_t encoded_pos = 0;
+	size_t encoded_size_left = encoded_txt.size();
+	size_t chars_left = dictionary.size();
+	offset = 0;
+	while(true)
+	{
+		offset = offset % 8;
+		size_t to_read = std::min(encoded_size_left, sizeof(read_buffer));
+		if(to_read == 0)
+		{
+			break;
+		}
+
+		size_t read_cnt = encoded_txt.copy((char*)read_buffer+(bool)offset, to_read-(bool)offset, encoded_pos)+(bool)offset;
+
+		if(read_cnt == 0)
+		{
+			break;
+		}
+
+		encoded_pos += read_cnt - (bool)offset;
+		encoded_size_left -= read_cnt - (bool)offset;
+
+		while(true)
+		{
+			printf("decode(read_cnt: %ld, min: %ld, offset: %ld)\n", read_cnt, std::min(chars_left, sizeof(write_buffer)), offset);
+			auto result = dictionary.decode(read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
+			printf("result.first: %ld\nresult.second: %ld\n\n", result.first, result.second);
+
+			offset = result.first;
+			if(result.second == 0)
+			{
+				if(offset % 8)
+				{
+					printf("Moving read_buffer+%ld\n", offset/8);
+					memmove(read_buffer, read_buffer+offset/8, 1);
+				}
+
+				break;
+			}
+
+			size_t to_write = result.second;
+
+			size_t old_size = decoded_txt.size();
+			EXPECT_EQ(decoded_txt.append(write_buffer, to_write).size() - old_size, to_write);
+
+			chars_left -= to_write;
+		}
+	}
+
+	EXPECT_EQ(original_txt, decoded_txt);
 }

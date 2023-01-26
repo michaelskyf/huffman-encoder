@@ -100,7 +100,7 @@ public:
 	 * @returns						number of bits read from src (first) and number of bytes written to dst (second)
 	 * @throws						std::bad_alloc
 	 */
-	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset = 0);
+	std::pair<size_t, size_t> decode(const unsigned char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset = 0);
 
 private:
 	std::unique_ptr<huffman_tree_node> m_root;

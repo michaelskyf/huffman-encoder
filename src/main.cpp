@@ -420,7 +420,7 @@ void decompress()
 
 		char* r_buff = read_buffer;
 		while(read_bytes)
-		{
+		{/*
 			std::cout << "\n1:\nOffset: " << offset << "\nto_read: " << to_read << "\n\n";
 
 			auto result = dictionary.decode(r_buff, read_bytes, write_buffer, std::min(to_read, sizeof(write_buffer)), offset);
@@ -442,7 +442,7 @@ void decompress()
 			if(offset)
 			{
 				memmove(read_buffer, r_buff+1, 1);
-			}
+			}*/
 		}
 	}
 }
