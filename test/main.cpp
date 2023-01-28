@@ -250,16 +250,22 @@ TEST(huffman, long_text)
 	}
 }
 
-TEST(huffman, split_text)
+TEST(huffman, split_text_encoding)
 {
 	std::string original_txt =
-		"AAAAAAAAAAAAABBBBBBBBBBCCCCCCCCCCCCDDDDDDDDDDDDDFFFFFFFFFFFFFUUUUUUUUggggggggggggg";
+		" Morbi tempor tempor semper. Integer ultricies, quam luctus tempor consectetur, quam tortor vehicula enim, vel ullamcorper sapien nulla nec sem. Sed posuere dui quis porttitor vulputate. Ut laoreet sapien libero, eget faucibus enim ultrices et. Nulla facilisi. Pellentesque rutrum sagittis orci at ultricies. Nunc luctus, augue nec lobortis condimentum, dui nunc tincidunt lorem, ut mattis sapien erat eu nibh. Aliquam a mattis eros. Integer ac metus pulvinar, viverra leo non, suscipit ex. Donec in auctor tortor. Vivamus rutrum ut ipsum a venenatis.\n"
+"\n"
+"Duis libero magna, condimentum quis mauris a, faucibus tincidunt elit. Curabitur sit amet magna ac est venenatis rhoncus at eu augue. Vivamus at lectus condimentum massa commodo consequat non ac ante. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet a ex consectetur malesuada. Fusce hendrerit enim velit, a varius mi commodo eu. Donec rutrum iaculis arcu at vestibulum. Nunc non malesuada neque. Praesent pulvinar urna quis aliquam dignissim. Donec ac volutpat mauris.\n"
+"\n"
+"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor. ";
+	
 	std::string encoded_txt;
-	std::string decoded_txt; // Final result
-
+	std::string partially_encoded_txt;
+	char read_buffer[4]; // Buffer for reading
+	char write_buffer[4]; // Buffer for writing
+	
 	HuffmanDictionary dictionary(original_txt.data(), original_txt.size());
-	unsigned char read_buffer[2]; // Buffer for reading
-	char write_buffer[2]; // Buffer for writing
+	encoded_txt.resize(dictionary.size());
 
 	EXPECT_TRUE(dictionary.is_initialized());
 	if(!dictionary.is_initialized())
@@ -271,65 +277,117 @@ TEST(huffman, split_text)
 	size_t original_pos = 0;
 	size_t original_size_left = original_txt.size();
 	size_t offset = 0;
-	while(size_t read_cnt = original_txt.copy((char*)read_buffer, std::min(original_size_left, sizeof(read_buffer)), original_pos))
-	{
-		char* read_buffer_ptr = (char*)read_buffer;
-		original_pos += read_cnt;
-		original_size_left -= read_cnt;
-
-		while(read_cnt)
-		{
-			char byte_save = *write_buffer;
-			auto result = dictionary.encode(read_buffer_ptr, read_cnt, write_buffer, sizeof(write_buffer), offset);
-			
-			EXPECT_EQ((char)(byte_save << (8-offset)), (char)((*write_buffer) << (8-offset)));
-			
-			size_t to_write = result.second / 8;
-
-			size_t old_size = encoded_txt.size();
-			EXPECT_EQ(encoded_txt.append(write_buffer, to_write).size() - old_size, to_write);
-
-			if(offset)
-			{
-				memmove(write_buffer, write_buffer+to_write, 1);
-			}
-
-			read_buffer_ptr += result.first;
-			read_cnt -= result.first;
-			offset = result.second % 8;
-		}
-	}
-
-	// If there's offset, write the last byte
-	if(offset)
-	{
-		size_t old_size = encoded_txt.size();
-		EXPECT_EQ(encoded_txt.append(write_buffer, 1).size() - old_size, 1);
-	}
-
-	// Decode the string
-	size_t encoded_pos = 0;
-	size_t encoded_size_left = encoded_txt.size();
-	size_t chars_left = dictionary.size();
-	offset = 0;
+	size_t read_cnt = 0;
 	while(true)
 	{
-		offset = offset % 8;
-		size_t to_read = std::min(encoded_size_left, sizeof(read_buffer));
-		if(to_read == 0)
-		{
-			break;
-		}
-
-		size_t read_cnt = encoded_txt.copy((char*)read_buffer+(bool)offset, to_read-(bool)offset, encoded_pos)+(bool)offset;
-
+		size_t to_read = std::min(original_size_left, sizeof(read_buffer));
+		read_cnt = original_txt.copy(read_buffer, to_read, original_pos);
 		if(read_cnt == 0)
 		{
 			break;
 		}
 
-		encoded_pos += read_cnt - (bool)offset;
-		encoded_size_left -= read_cnt - (bool)offset;
+		original_pos += read_cnt;
+		original_size_left -= read_cnt;
+
+		char* read_buffer_ptr = read_buffer;
+		while(read_cnt)
+		{
+
+			char byte_save = *write_buffer;
+			printf("encode(read_cnt: %ld, buffer size: %ld, offset: %ld)\n", read_cnt, sizeof(write_buffer), offset);
+			auto result = dictionary.encode(read_buffer_ptr, read_cnt, write_buffer, sizeof(write_buffer), offset);
+			printf("result.first: %ld\nresult.second: %ld\n\n", result.first, result.second);
+			
+			EXPECT_EQ((char)(byte_save << (8-offset)), (char)((*write_buffer) << (8-offset)));
+
+			offset = result.second % 8;
+
+			if(result.first == 0)
+			{
+				break;
+			}
+			
+			size_t to_write = result.second / 8;
+
+			size_t old_size = partially_encoded_txt.size();
+			EXPECT_EQ(partially_encoded_txt.append(write_buffer, to_write).size() - old_size, to_write);
+
+			if(offset)
+			{
+				printf("Moving read_buffer+%ld (%ld bytes)\n", to_write, 1L);
+				memmove(write_buffer, write_buffer+to_write, 1);
+			}
+
+			read_cnt -= result.first;
+			read_buffer_ptr += result.first;
+		}
+
+		
+		printf("loop end\n");
+	}
+
+	if(offset)
+	{
+		size_t old_size = partially_encoded_txt.size();
+		EXPECT_EQ(partially_encoded_txt.append(write_buffer, 1).size() - old_size, 1);
+	}
+
+	auto result = dictionary.encode(original_txt.data(), original_txt.size(), encoded_txt.data(), encoded_txt.size());
+	size_t written_bytes = result.second/8 + (result.second % 8 ? 1 : 0);
+	encoded_txt.resize(written_bytes);
+
+	EXPECT_EQ(encoded_txt, partially_encoded_txt);
+}
+
+TEST(huffman, split_text_decoding)
+{
+	std::string original_txt =
+		" Morbi tempor tempor semper. Integer ultricies, quam luctus tempor consectetur, quam tortor vehicula enim, vel ullamcorper sapien nulla nec sem. Sed posuere dui quis porttitor vulputate. Ut laoreet sapien libero, eget faucibus enim ultrices et. Nulla facilisi. Pellentesque rutrum sagittis orci at ultricies. Nunc luctus, augue nec lobortis condimentum, dui nunc tincidunt lorem, ut mattis sapien erat eu nibh. Aliquam a mattis eros. Integer ac metus pulvinar, viverra leo non, suscipit ex. Donec in auctor tortor. Vivamus rutrum ut ipsum a venenatis.\n"
+"\n"
+"Duis libero magna, condimentum quis mauris a, faucibus tincidunt elit. Curabitur sit amet magna ac est venenatis rhoncus at eu augue. Vivamus at lectus condimentum massa commodo consequat non ac ante. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet a ex consectetur malesuada. Fusce hendrerit enim velit, a varius mi commodo eu. Donec rutrum iaculis arcu at vestibulum. Nunc non malesuada neque. Praesent pulvinar urna quis aliquam dignissim. Donec ac volutpat mauris.\n"
+"\n"
+"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor. ";
+	std::string encoded_txt;
+	std::string decoded_txt; // Final result
+
+	HuffmanDictionary dictionary(original_txt.data(), original_txt.size());
+	unsigned char read_buffer[4]; // Buffer for reading
+	char write_buffer[4]; // Buffer for writing
+
+	EXPECT_TRUE(dictionary.is_initialized());
+	if(!dictionary.is_initialized())
+	{
+		FAIL();
+	}
+
+	// Encode the string
+	encoded_txt.resize(dictionary.size());
+	auto result = dictionary.encode(original_txt.data(), original_txt.size(), encoded_txt.data(), encoded_txt.size());
+	size_t written_bytes = result.second/8 + (result.second % 8 ? 1 : 0);
+	encoded_txt.resize(written_bytes);
+
+	// Decode the string
+	size_t encoded_pos = 0;
+	size_t encoded_size_left = encoded_txt.size();
+	size_t chars_left = dictionary.size();
+	size_t read_cnt = 0;
+	size_t offset = 0;
+	while(true)
+	{
+		size_t read_offset = read_cnt - offset/8;
+		offset = offset % 8;
+		size_t to_read = std::min(encoded_size_left, sizeof(read_buffer)-read_offset);
+
+		read_cnt = encoded_txt.copy((char*)read_buffer+read_offset, to_read, encoded_pos);
+		if(read_cnt == 0)
+		{
+			break;
+		}
+
+		encoded_pos += read_cnt;
+		encoded_size_left -= read_cnt;
+		read_cnt += read_offset;
 
 		while(true)
 		{
@@ -342,8 +400,8 @@ TEST(huffman, split_text)
 			{
 				if(offset % 8)
 				{
-					printf("Moving read_buffer+%ld\n", offset/8);
-					memmove(read_buffer, read_buffer+offset/8, 1);
+					printf("Moving read_buffer+%ld (%ld bytes)\n", offset/8, read_cnt - offset/8);
+					memmove(read_buffer, read_buffer+offset/8, read_cnt - offset/8);
 				}
 
 				break;

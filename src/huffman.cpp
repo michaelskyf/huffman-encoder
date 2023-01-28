@@ -247,13 +247,11 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 	
 	// Fills up an std::map that contains information to translate characters into their corresponding code
 	std::function<void(const huffman_tree_node& node, uint64_t code, uint8_t depth)> make_lookup_table =
-	[&](const huffman_tree_node& node, uint64_t code, uint8_t depth)
+	[&](const huffman_tree_node& node, uint64_t code, size_t depth)
 	{
 		if(node.is_character())
 		{
 			lookup_table.emplace(node.m_character, std::make_pair(reverse_code(code, depth), depth));
-			if(depth > 8)
-				printf("%c is %u bits long\n", node.m_character, depth);
 		}
 		else
 		{
@@ -280,6 +278,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 	for(size_t i = 0; i < src_size; i++)
 	{
+		printf("char: %c\n", src[i]);
 		std::pair<uint64_t, uint8_t> code;
 		char c = src[i];
 		int space_left;
@@ -296,19 +295,31 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 		space_left = 8 - used_bits - code.second;
 
 		byte |= code.first << used_bits;
-
+		
 		if(space_left <= 0)
 		{
-			if(dst_size--)
+			printf("byte: %u\n", (unsigned char)byte);
+			size_t used_bits_save = used_bits;
+			dst[dst_index] = byte;
+			byte = 0 | (code.first >> (8-used_bits));
+			used_bits = -space_left;
+
+			if(--dst_size == 0)
 			{
-				dst[dst_index++] = byte;
-				byte = 0 | (code.first >> (8-used_bits));
-				used_bits = -space_left;
+				// Can't save current byte because there wouldn't be space for the remaining bits
+				if(used_bits != 0)
+				{
+					printf("10\n");
+					return {i, dst_index*8+used_bits_save};
+				}
+				else
+				{
+					printf("11\n");
+					return {i+1, dst_index*8};
+				}
 			}
-			else
-			{
-				return {i, dst_index*8};
-			}
+
+			dst_index++;
 		}
 		else
 		{
@@ -316,38 +327,22 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 		}
 	}
 
-	if(used_bits && dst_size)
+	if(used_bits)
 	{
 		dst[dst_index] = byte;
+		printf("2\n");
 		return {src_size, dst_index*8 + used_bits};
 	}
 
+	printf("1\n");
 	return {src_size, dst_index*8};
 }
-
-#define P1 "byte: %c%c%c%c%c%c%c%c (%u)\n"
-#define P2(byte)  \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0'), \
-  byte 
-
 
 std::pair<size_t, size_t> HuffmanDictionary::decode(const unsigned char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset)
 {
 	if(!this->is_initialized() || src_size == 0 || dst_size == 0)
 	{
 		return {0, 0};
-	}
-
-	if(src_offset == 15)
-	{
-		//__asm__("int3");
 	}
 
 	size_t bits_left = src_offset % 8;
@@ -362,13 +357,11 @@ std::pair<size_t, size_t> HuffmanDictionary::decode(const unsigned char* src, si
 	for(size_t i = src_offset / 8; i < src_size; i++)
 	{
 		unsigned char byte = src[i] >> ((8-bits_left)%8);
-		printf(P1, P2(byte));
 
 		while(bits_left)
 		{
 			if(dst_index >= dst_size)
 			{
-				printf("Returning i*8+return_bits: %ld dst_index: %ld (result: %c %c)\n", i*8+return_bits, dst_index, dst[0], dst[1]);
 				return {i*8+return_bits, dst_index};
 			}
 
@@ -398,6 +391,5 @@ std::pair<size_t, size_t> HuffmanDictionary::decode(const unsigned char* src, si
 		bits_left = 8;
 	}
 
-	printf("Returning src_size: %ld dst_index: %ld (result: %c %c)\n", src_size, dst_index, dst[0], dst[1]);
 	return {(src_size-1)*8+(return_bits ? return_bits : 8), dst_index};
 }
