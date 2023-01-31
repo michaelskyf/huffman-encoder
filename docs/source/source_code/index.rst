@@ -1,2 +1,6 @@
-Test Source code
-================
+Source code documentation
+=========================
+
+
+.. doxygenclass:: HuffmanDictionary
+	:members:

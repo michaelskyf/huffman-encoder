@@ -13,6 +13,7 @@ dekompresji)
 #include <boost/json/stream_parser.hpp>
 #include <boost/json/value.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <filesystem>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -384,7 +385,6 @@ void decompress()
 	std::ifstream input_file(parsed_options.input_path);
 	std::ofstream output_file(parsed_options.output_path);
 	HuffmanDictionary dictionary;
-	size_t to_read;
 	auto htptr = read_huffman_tree_json(parsed_options.dictionary_path.c_str());
 	if(htptr)
 	{
@@ -397,52 +397,57 @@ void decompress()
 		exit(EXIT_FAILURE);
 	}
 
-	to_read = dictionary.size();
-
-	size_t read_bytes;
 	if(!input_file || !output_file)
 	{
 		std::cerr << "Failed to open input or output file" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
+	size_t encoded_size_left = std::filesystem::file_size(parsed_options.input_path);
+	size_t chars_left = dictionary.size();
+	size_t read_cnt = 0;
 	size_t offset = 0;
-	size_t second_offset = 0;
-	while(to_read)
+	while(true)
 	{
-		size_t b_size = sizeof(read_buffer) - (offset ? 1 : 0);
-		char* b_ptr = read_buffer + (offset ? 1 : 0);
-		input_file.read(b_ptr, b_size);
-		if(!(read_bytes = input_file.gcount()))
+		size_t read_offset = read_cnt - offset/8;
+		offset = offset % 8;
+		size_t to_read = std::min(encoded_size_left, sizeof(read_buffer)-read_offset);
+
+		input_file.read(read_buffer+read_offset, to_read);
+		read_cnt = input_file.gcount();
+		if(read_cnt == 0)
 		{
 			break;
 		}
 
-		char* r_buff = read_buffer;
-		while(read_bytes)
-		{/*
-			std::cout << "\n1:\nOffset: " << offset << "\nto_read: " << to_read << "\n\n";
+		encoded_size_left -= read_cnt;
+		read_cnt += read_offset;
 
-			auto result = dictionary.decode(r_buff, read_bytes, write_buffer, std::min(to_read, sizeof(write_buffer)), offset);
-			offset = result.first % 8;
-			to_read -= result.first / 8;
+		while(true)
+		{
+			printf("decode(read_cnt: %ld, min: %ld, offset: %ld)\n", read_cnt, std::min(chars_left, sizeof(write_buffer)), offset);
+			auto result = dictionary.decode(read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
+			printf("result.first: %ld\nresult.second: %ld\n\n", result.first, result.second);
 
-			std::cout << "\n2:\nOffset: " << offset << "\nto_read: " << to_read << "\n/8: " << result.first/8 << "\nwritten: " << result.second <<"\n\n";
-
-			if(!output_file.write(write_buffer, result.second))
+			offset = result.first;
+			if(result.second == 0)
 			{
-				std::cerr << "Failed to write to output file" << std::endl;
-				exit(EXIT_FAILURE);
+				if(offset % 8)
+				{
+					printf("Moving read_buffer+%ld (%ld bytes)\n", offset/8, read_cnt - offset/8);
+					memmove(read_buffer, read_buffer+offset/8, read_cnt - offset/8);
+				}
+
+				break;
 			}
 
-			second_offset = result.first/8;
-			read_bytes -= second_offset;
-			r_buff += second_offset;
-
-			if(offset)
+			size_t to_write = result.second;
+			if(!output_file.write(write_buffer, to_write))
 			{
-				memmove(read_buffer, r_buff+1, 1);
-			}*/
+				printf("fail\n");
+			}
+
+			chars_left -= to_write;
 		}
 	}
 }

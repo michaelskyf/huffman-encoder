@@ -8,7 +8,7 @@ if (DOXYGEN_FOUND)
 
     # Note: do not put "ALL" - this builds docs together with application EVERY TIME!
     add_custom_target( docs
-        COMMAND make html -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.spx
+        COMMAND make html latexpdf -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.spx
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Sphinx and Doxygen"
         VERBATIM )

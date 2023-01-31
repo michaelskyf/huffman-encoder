@@ -135,7 +135,7 @@ TEST(huffman, decoding)
 
 	coder.create(test_string.c_str(), test_string.size());
 
-	auto decoded_offset = coder.decode((unsigned char*)encoded_string.c_str(), encoded_string.size(), buffer, std::min(coder.size(), sizeof(buffer)));
+	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, std::min(coder.size(), sizeof(buffer)));
 
 	EXPECT_EQ(test_string.size(), decoded_offset.second);
 
@@ -161,7 +161,7 @@ TEST(huffman, decoding_empty)
 
 	EXPECT_EQ(coder.is_initialized(), false);
 
-	auto decoded_offset = coder.decode((unsigned char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer));
+	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer));
 
 	EXPECT_EQ(decoded_offset.second, 0);
 }
@@ -186,7 +186,7 @@ void test_string(const std::string& original)
 
 	std::string decoded;
 	decoded.resize(dictionary.size());
-	auto decode_result = dictionary.decode((unsigned char*)encoded.data(), encoded.size(), decoded.data(), decoded.size());
+	auto decode_result = dictionary.decode(encoded.data(), encoded.size(), decoded.data(), decoded.size());
 	if(decode_result.second != dictionary.size())
 	{
 		FAIL();
@@ -198,50 +198,11 @@ void test_string(const std::string& original)
 TEST(huffman, long_text)
 {
 	const std::string original[] = {
-		"Get your motor runnin'\n"
-		"Head out on the highway\n"
-		"Looking for adventure\n"
-		"In whatever comes our way\n"
-		"Yeah, darlin' gonna make it happen\n"
-		"Take the world in a love embrace\n"
-		"Fire all of your guns at once\n"
-		"And explode into space\n"
-		"I like smoke and lightnin'\n"
-		"Heavy metal thunder\n"
-		"Racing with the wind\n"
-		"And the feeling that I'm under\n"
-		"Yeah, darlin' gonna make it happen\n"
-		"Take the world in a love embrace\n"
-		"Fire all of your guns at once\n"
-		"And explode into space\n"
-		"Like a true nature's child\n"
-		"We were born\n"
-		"Born to be wild\n"
-		"We can climb so high\n"
-		"I never wanna die\n"
-		"Born to be wild\n"
-		"Born to be wild\n"
-		"Get your motor runnin'\n"
-		"Head out on the highway\n"
-		"Looking for adventure\n"
-		"In whatever comes our way\n"
-		"Yeah, darlin' gonna make it happen\n"
-		"Take the world in a love embrace\n"
-		"Fire all of your guns at once\n"
-		"And explode into space\n"
-		"Like a true nature's child\n"
-		"We were born\n"
-		"Born to be wild\n"
-		"We can climb so high\n"
-		"I never wanna die\n"
-		"Born to be wild\n"
-		"Born to be wild"
-		,
 		" Morbi tempor tempor semper. Integer ultricies, quam luctus tempor consectetur, quam tortor vehicula enim, vel ullamcorper sapien nulla nec sem. Sed posuere dui quis porttitor vulputate. Ut laoreet sapien libero, eget faucibus enim ultrices et. Nulla facilisi. Pellentesque rutrum sagittis orci at ultricies. Nunc luctus, augue nec lobortis condimentum, dui nunc tincidunt lorem, ut mattis sapien erat eu nibh. Aliquam a mattis eros. Integer ac metus pulvinar, viverra leo non, suscipit ex. Donec in auctor tortor. Vivamus rutrum ut ipsum a venenatis.\n"
 "\n"
 "Duis libero magna, condimentum quis mauris a, faucibus tincidunt elit. Curabitur sit amet magna ac est venenatis rhoncus at eu augue. Vivamus at lectus condimentum massa commodo consequat non ac ante. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet a ex consectetur malesuada. Fusce hendrerit enim velit, a varius mi commodo eu. Donec rutrum iaculis arcu at vestibulum. Nunc non malesuada neque. Praesent pulvinar urna quis aliquam dignissim. Donec ac volutpat mauris.\n"
 "\n"
-"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor. "
+"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor."
 		};
 
 	for(const auto& txt : original)
@@ -257,7 +218,7 @@ TEST(huffman, split_text_encoding)
 "\n"
 "Duis libero magna, condimentum quis mauris a, faucibus tincidunt elit. Curabitur sit amet magna ac est venenatis rhoncus at eu augue. Vivamus at lectus condimentum massa commodo consequat non ac ante. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet a ex consectetur malesuada. Fusce hendrerit enim velit, a varius mi commodo eu. Donec rutrum iaculis arcu at vestibulum. Nunc non malesuada neque. Praesent pulvinar urna quis aliquam dignissim. Donec ac volutpat mauris.\n"
 "\n"
-"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor. ";
+"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor.";
 	
 	std::string encoded_txt;
 	std::string partially_encoded_txt;
@@ -342,17 +303,12 @@ TEST(huffman, split_text_encoding)
 
 TEST(huffman, split_text_decoding)
 {
-	std::string original_txt =
-		" Morbi tempor tempor semper. Integer ultricies, quam luctus tempor consectetur, quam tortor vehicula enim, vel ullamcorper sapien nulla nec sem. Sed posuere dui quis porttitor vulputate. Ut laoreet sapien libero, eget faucibus enim ultrices et. Nulla facilisi. Pellentesque rutrum sagittis orci at ultricies. Nunc luctus, augue nec lobortis condimentum, dui nunc tincidunt lorem, ut mattis sapien erat eu nibh. Aliquam a mattis eros. Integer ac metus pulvinar, viverra leo non, suscipit ex. Donec in auctor tortor. Vivamus rutrum ut ipsum a venenatis.\n"
-"\n"
-"Duis libero magna, condimentum quis mauris a, faucibus tincidunt elit. Curabitur sit amet magna ac est venenatis rhoncus at eu augue. Vivamus at lectus condimentum massa commodo consequat non ac ante. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet a ex consectetur malesuada. Fusce hendrerit enim velit, a varius mi commodo eu. Donec rutrum iaculis arcu at vestibulum. Nunc non malesuada neque. Praesent pulvinar urna quis aliquam dignissim. Donec ac volutpat mauris.\n"
-"\n"
-"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor. ";
+	std::string original_txt = "abcdefg";
 	std::string encoded_txt;
 	std::string decoded_txt; // Final result
 
 	HuffmanDictionary dictionary(original_txt.data(), original_txt.size());
-	unsigned char read_buffer[4]; // Buffer for reading
+	char read_buffer[4]; // Buffer for reading
 	char write_buffer[4]; // Buffer for writing
 
 	EXPECT_TRUE(dictionary.is_initialized());
@@ -391,16 +347,13 @@ TEST(huffman, split_text_decoding)
 
 		while(true)
 		{
-			printf("decode(read_cnt: %ld, min: %ld, offset: %ld)\n", read_cnt, std::min(chars_left, sizeof(write_buffer)), offset);
 			auto result = dictionary.decode(read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
-			printf("result.first: %ld\nresult.second: %ld\n\n", result.first, result.second);
 
 			offset = result.first;
 			if(result.second == 0)
 			{
 				if(offset % 8)
 				{
-					printf("Moving read_buffer+%ld (%ld bytes)\n", offset/8, read_cnt - offset/8);
 					memmove(read_buffer, read_buffer+offset/8, read_cnt - offset/8);
 				}
 

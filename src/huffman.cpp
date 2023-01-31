@@ -230,10 +230,10 @@ bool HuffmanDictionary::is_initialized() const
 
 std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset)
 {
-	std::map<char, std::pair<uint64_t , uint8_t>> lookup_table{};
+	std::map<char, std::pair<uint64_t , size_t>> lookup_table{};
 
 	// When travelling down the tree the code reversed, so we need to reverse it once again
-	auto reverse_code = [](uint64_t code, uint8_t depth)
+	auto reverse_code = [](uint64_t code, size_t depth)
 	{
 		uint64_t new_code = 0;
 		while(depth--)
@@ -246,7 +246,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 	};
 	
 	// Fills up an std::map that contains information to translate characters into their corresponding code
-	std::function<void(const huffman_tree_node& node, uint64_t code, uint8_t depth)> make_lookup_table =
+	std::function<void(const huffman_tree_node& node, uint64_t code, size_t depth)> make_lookup_table =
 	[&](const huffman_tree_node& node, uint64_t code, size_t depth)
 	{
 		if(node.is_character())
@@ -262,63 +262,53 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 	if(this->is_initialized() == false || src_size == 0 || dst_size == 0)
 	{
-		return {0, 0};
+		return {};
 	}
 
-	if(src_size > std::numeric_limits<size_t>::max()/8)
+	if(dst_size > std::numeric_limits<size_t>::max()/8)
 	{
-		src_size = std::numeric_limits<size_t>::max()/8;
+		dst_size = std::numeric_limits<size_t>::max()/8;
 	}
 
 	make_lookup_table(*this->m_root, 0, 0);
 
-	size_t used_bits = offset % 8;
 	size_t dst_index = offset / 8;
-	char byte = 0 | (dst[dst_index] & ~(-1 << used_bits));
-
+	size_t used_bits = offset % 8;
+	unsigned char byte = dst[dst_index] & ~(std::numeric_limits<size_t>::max() << used_bits);
 	for(size_t i = 0; i < src_size; i++)
 	{
-		printf("char: %c\n", src[i]);
-		std::pair<uint64_t, uint8_t> code;
-		char c = src[i];
-		int space_left;
+		std::pair<uint64_t, size_t> code;
 
 		try
 		{
-			code = lookup_table.at(c);
+			code = lookup_table.at(src[i]);
 		}
 		catch(...)
 		{
-			return {0, 0};
+			return {};
 		}
 
-		space_left = 8 - used_bits - code.second;
-
+		int space_left = 8 - used_bits - code.second;
 		byte |= code.first << used_bits;
-		
+
 		if(space_left <= 0)
 		{
-			printf("byte: %u\n", (unsigned char)byte);
-			size_t used_bits_save = used_bits;
 			dst[dst_index] = byte;
-			byte = 0 | (code.first >> (8-used_bits));
-			used_bits = -space_left;
+			byte = code.first >> (8-used_bits);
 
 			if(--dst_size == 0)
 			{
-				// Can't save current byte because there wouldn't be space for the remaining bits
-				if(used_bits != 0)
+				if(space_left)
 				{
-					printf("10\n");
-					return {i, dst_index*8+used_bits_save};
+					return {i, dst_index*8+used_bits};
 				}
 				else
 				{
-					printf("11\n");
 					return {i+1, dst_index*8};
 				}
 			}
 
+			used_bits = -space_left;
 			dst_index++;
 		}
 		else
@@ -330,66 +320,61 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 	if(used_bits)
 	{
 		dst[dst_index] = byte;
-		printf("2\n");
-		return {src_size, dst_index*8 + used_bits};
 	}
 
-	printf("1\n");
-	return {src_size, dst_index*8};
+	return {src_size, dst_index*8+used_bits};
 }
 
-std::pair<size_t, size_t> HuffmanDictionary::decode(const unsigned char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset)
+std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset)
 {
 	if(!this->is_initialized() || src_size == 0 || dst_size == 0)
 	{
 		return {0, 0};
 	}
 
-	size_t bits_left = src_offset % 8;
-	size_t return_bits = bits_left;
-	if(bits_left == 0)
+	size_t bits_left = (src_offset % 8 ? src_offset % 8: 8);
+	size_t src_index = src_offset / 8;
+	size_t last_ret = 0;
+	const huffman_tree_node* node = m_root.get();
+	unsigned char byte = src[src_index] >> ((8-bits_left)%8);
+	for(size_t i = 0; i < dst_size; i++)
 	{
-		bits_left = 8;
-	}
-
-	size_t dst_index = 0;
-	huffman_tree_node* current_node = m_root.get();
-	for(size_t i = src_offset / 8; i < src_size; i++)
-	{
-		unsigned char byte = src[i] >> ((8-bits_left)%8);
-
-		while(bits_left)
+		while(true)
 		{
-			if(dst_index >= dst_size)
+			if(bits_left == 0)
 			{
-				return {i*8+return_bits, dst_index};
+				if(src_size-- == 0)
+				{
+					return {last_ret, i};
+				}
+
+				byte = src[++src_index];
+				bits_left = 8;
 			}
 
-			if(!current_node->is_character())
+			if(node->is_character())
+			{
+				dst[i] = node->m_character;
+				node = m_root.get();
+				last_ret = src_index*8+bits_left;
+				break;
+			}
+			else
 			{
 				if(byte & 1)
 				{
-					current_node = current_node->m_left.get();
+					node = node->m_left.get();
 				}
 				else
 				{
-					current_node = current_node->m_right.get();
+					node = node->m_right.get();
 				}
 
 				byte >>= 1;
 				bits_left--;
 			}
-
-			if(current_node->is_character())
-			{
-				dst[dst_index++] = current_node->m_character;
-				current_node = m_root.get();
-				return_bits = bits_left;
-			}
 		}
-
-		bits_left = 8;
 	}
 
-	return {(src_size-1)*8+(return_bits ? return_bits : 8), dst_index};
+	return {last_ret, dst_size};
 }
