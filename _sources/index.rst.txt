@@ -8,17 +8,17 @@ Welcome to ppk-project-huffman's documentation!
    :alt: GPLv3
    :target: https://www.gnu.org/licenses/gpl-3.0.html
 
-.. Warning:: This project was made as a homework. **Use with caution!**
+.. Warning:: This project was made for a homework. **Use with caution!**
 
 Short summary of the project
 ============================
 
-This project can encode and decode a string of data by using given or internally generated dictionary.
+This project can encode and decode files using Huffman coding.
 
 History of the project
 ======================
 
-This project was made as an obligatory project for PPK (Basics of Computer Programming) class
+This project was made for the practical exam of PPK (Basics of Computer Programming) class
 in the Silesian University of Technology. During the classes we had to pick one of fifteen different projects
 and finish them before the end of the semester. Additionally we also had to write a documentation
 for the project, which is why I write this in the first place. Thanks to that I finally got myself together
