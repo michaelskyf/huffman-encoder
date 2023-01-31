@@ -1,3 +1,4 @@
+
 /*
 Program 13 - Huffman
 Napisać program do kompresji plików metodą Huffmanna.
@@ -71,6 +72,10 @@ static struct
 }
 parsed_options{};
 
+/**
+ * @brief display a help message
+ * @param[in]	prog_name	argv[0]
+ */
 static void print_help(const char* prog_name)
 {
 	auto print_element = [](const char shortopt, const char* longopt, int arg_type, const char* argname, const char* description)
@@ -96,6 +101,12 @@ static void print_help(const char* prog_name)
 	}
 }
 
+/**
+ * @brief parse arguments given on the command line
+ * @param[in]	argc	argument count
+ * @param[in]	argv	array of arguments
+ * @returns		0 on success, exits on failure
+ */
 static int parse_args(int argc, char* argv[])
 {
 	int option;
@@ -198,6 +209,11 @@ static int parse_args(int argc, char* argv[])
 	return 0;
 }
 
+/**
+ * @brief read the huffman tree from a file
+ * @param[in]	path	name of file from where the tree would be read
+ * @returns		pointer to a new tree on success, nullptr on failure
+ */
 std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
 {
 	pt::ptree root;
@@ -256,6 +272,12 @@ std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
 	return result;
 }
 
+/**
+ * @brief write the huffman tree to a file
+ * @param[in]	path	name of file where the tree would be written
+ * @param[in]	root	root of the tree
+ * @returns		true when suceeded, false on fail
+ */
 bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 {
 	pt::ptree json_root, json_root_node;
@@ -292,6 +314,9 @@ bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 	return true;
 }
 
+/**
+ * @brief compresses a file
+ */
 void compress()
 {
 		char read_buffer[1024], write_buffer[1024];
@@ -379,6 +404,9 @@ void compress()
 		input_file.close();
 }
 
+/**
+ * @brief decompresses a file
+ */
 void decompress()
 {
 	char read_buffer[1024], write_buffer[1024];
