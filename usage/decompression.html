@@ -20,7 +20,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Test Source code" href="../source_code/index.html" />
+    <link rel="next" title="Source code documentation" href="../source_code/index.html" />
     <link rel="prev" title="Compression" href="compression.html" /> 
 </head>
 
@@ -53,7 +53,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source code documentation</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../source_code/index.html">Test Source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../source_code/index.html">Source code documentation</a></li>
 </ul>
 
         </div>
@@ -82,6 +82,17 @@
              
   <section id="decompression">
 <h1>Decompression<a class="headerlink" href="#decompression" title="Permalink to this heading"></a></h1>
+<p>To decompress a file you need to:</p>
+<ul class="simple">
+<li><p>Pass the name of the file that you want to decompress (-i, –input)</p></li>
+<li><p>Pass the name of the decompressed file (-o, –output)</p></li>
+<li><p>Pass the name of the file containing dictionary (-s, -d, –dictionary)</p></li>
+<li><p>Set the mode to decompression (-t, -m, –mode -&gt; d)</p></li>
+</ul>
+<p>Example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/huffman-compression<span class="w"> </span>-i<span class="w"> </span>compressed.txt<span class="w"> </span>-o<span class="w"> </span>decompressed.txt<span class="w"> </span>-d<span class="w"> </span>dictionary.txt<span class="w"> </span>-m<span class="w"> </span>d
+</pre></div>
+</div>
 </section>
 
 
@@ -89,7 +100,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="compression.html" class="btn btn-neutral float-left" title="Compression" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../source_code/index.html" class="btn btn-neutral float-right" title="Test Source code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../source_code/index.html" class="btn btn-neutral float-right" title="Source code documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
