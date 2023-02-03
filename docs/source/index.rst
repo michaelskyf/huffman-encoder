@@ -28,7 +28,7 @@ Lessons learned
 ===============
 
 Unfortunately, I've made two big mistakes while making the project.
-The first was mistake was creating bloated, monolithic functions ( encode() and decode() ) and the second one was not using TDD (Test Driven Development).
+The first mistake was creating bloated, monolithic functions ( encode() and decode() ) and the second one was not using TDD (Test Driven Development).
 These two errors made me spend quite a long time debugging and testing the application with an unsatisfactory final result.
 
 Links

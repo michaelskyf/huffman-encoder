@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <map>
 #include <functional>
@@ -228,6 +229,19 @@ bool HuffmanDictionary::is_initialized() const
 	return m_root.get();
 }
 
+// Returns a byte and bits_set in that byte
+std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
+{
+	unsigned char real_byte = byte & ~(std::numeric_limits<unsigned char>::max() << bits_set);
+	size_t bits_written = std::min(8-bits_set, code.second);
+
+	real_byte |= code.first << bits_set;
+	code.second -= bits_written;
+	code.first >>= bits_written;
+
+	return {real_byte, bits_set + bits_written};
+}
+
 std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset)
 {
 	std::map<char, std::pair<uint64_t , size_t>> lookup_table{};
@@ -272,57 +286,61 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 	make_lookup_table(*this->m_root, 0, 0);
 
-	size_t dst_index = offset / 8;
-	size_t used_bits = offset % 8;
-	unsigned char byte = dst[dst_index] & ~(std::numeric_limits<size_t>::max() << used_bits);
-	for(size_t i = 0; i < src_size; i++)
+	unsigned char byte = dst[offset/8];
+	size_t bits_set = offset%8;
+	size_t old_bits_set = bits_set;
+	// si -> source index
+	// di -> destination index
+	size_t di = offset/8;
+	for(size_t si = 0; si < src_size; si++)
 	{
-		std::pair<uint64_t, size_t> code;
-
+		std::pair<uint64_t , size_t> code;
 		try
 		{
-			code = lookup_table.at(src[i]);
+			code = lookup_table.at(src[si]);
 		}
 		catch(...)
 		{
-			return {};
+			printf("TODO\n");
 		}
 
-		int space_left = 8 - used_bits - code.second;
-		byte |= code.first << used_bits;
-
-		if(space_left <= 0)
+		std::vector<unsigned char> bytes{};
+		while(code.second)
 		{
-			dst[dst_index] = byte;
-			byte = code.first >> (8-used_bits);
-
-			if(--dst_size == 0)
+			auto new_byte_data = encode_byte(byte, bits_set, code);
+			if(new_byte_data.second == 8)
 			{
-				if(space_left)
-				{
-					return {i, dst_index*8+used_bits};
-				}
-				else
-				{
-					return {i+1, dst_index*8};
-				}
+				bytes.emplace_back(new_byte_data.first);
+				bits_set = 0;
+			}
+			else
+			{
+				byte = new_byte_data.first;
+				bits_set = new_byte_data.second;
 			}
 
-			used_bits = -space_left;
-			dst_index++;
 		}
-		else
+
+		// If di + bytes.size() (+1 if there are bits set in the byte) is >= dst_size, there's no space to write the data
+		if(di+bytes.size()+(bits_set ? 1 : 0) > dst_size)
 		{
-			used_bits = 8 - space_left;
+			// Don't save the new bytes
+			return {si, di*8+old_bits_set};
 		}
-	}
 
-	if(used_bits)
+		// Write full bytes
+		memcpy(&dst[di], bytes.data(), bytes.size());
+		di += bytes.size();
+		old_bits_set = bits_set;
+	}
+	
+	// Write the remaining byte
+	if(bits_set)
 	{
-		dst[dst_index] = byte;
+		dst[di] = byte;
 	}
 
-	return {src_size, dst_index*8+used_bits};
+	return {src_size, di*8+bits_set};
 }
 
 std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset)
@@ -332,49 +350,51 @@ std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_
 		return {0, 0};
 	}
 
-	size_t bits_left = (src_offset % 8 ? src_offset % 8: 8);
-	size_t src_index = src_offset / 8;
-	size_t last_ret = 0;
-	const huffman_tree_node* node = m_root.get();
-	unsigned char byte = src[src_index] >> ((8-bits_left)%8);
-	for(size_t i = 0; i < dst_size; i++)
+	size_t bits_left = src_offset % 8;
+	size_t return_bits = bits_left;
+	if(bits_left == 0)
 	{
-		while(true)
+		bits_left = 8;
+	}
+
+	size_t dst_index = 0;
+	huffman_tree_node* current_node = m_root.get();
+	for(size_t i = src_offset / 8; i < src_size; i++)
+	{
+		unsigned char byte = src[i] >> ((8-bits_left)%8);
+
+		while(bits_left)
 		{
-			if(bits_left == 0)
+			if(dst_index >= dst_size)
 			{
-				if(src_size-- == 0)
-				{
-					return {last_ret, i};
-				}
-
-				byte = src[++src_index];
-				bits_left = 8;
+				return {i*8+return_bits, dst_index};
 			}
 
-			if(node->is_character())
-			{
-				dst[i] = node->m_character;
-				node = m_root.get();
-				last_ret = src_index*8+bits_left;
-				break;
-			}
-			else
+			if(!current_node->is_character())
 			{
 				if(byte & 1)
 				{
-					node = node->m_left.get();
+					current_node = current_node->m_left.get();
 				}
 				else
 				{
-					node = node->m_right.get();
+					current_node = current_node->m_right.get();
 				}
 
 				byte >>= 1;
 				bits_left--;
 			}
+
+			if(current_node->is_character())
+			{
+				dst[dst_index++] = current_node->m_character;
+				current_node = m_root.get();
+				return_bits = bits_left;
+			}
 		}
+
+		bits_left = 8;
 	}
 
-	return {last_ret, dst_size};
+	return {(src_size-1)*8+(return_bits ? return_bits : 8), dst_index};
 }

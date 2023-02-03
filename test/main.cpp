@@ -40,10 +40,10 @@ TEST(huffman, encoding)
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
 	const std::vector<unsigned char> correctly_encoded_string =
 	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
-	std::vector<char> buffer(correctly_encoded_string.size());
+	std::vector<unsigned char> buffer(correctly_encoded_string.size());
 
 	coder.create(test_string.data(), test_string.size());
-	size_t offset = coder.encode(test_string.data(), test_string.size(), buffer.data(), buffer.size(), 0).second;
+	size_t offset = coder.encode(test_string.data(), test_string.size(), (char*)buffer.data(), buffer.size(), 0).second;
 
 	EXPECT_EQ(offset, (correctly_encoded_string.size()-1)*8+2); // test_string.size()-1 full characters and 2 additional bits
 	if(offset != (correctly_encoded_string.size()-1)*8+2)
@@ -303,13 +303,19 @@ TEST(huffman, split_text_encoding)
 
 TEST(huffman, split_text_decoding)
 {
-	std::string original_txt = "abcdefg";
+	
+	std::string original_txt =
+		" ąęłóżźńMorbi tempor tempor semper. Integer ultricies, quam luctus tempor consectetur, quam tortor vehicula enim, vel ullamcorper sapien nulla nec sem. Sed posuere dui quis porttitor vulputate. Ut laoreet sapien libero, eget faucibus enim ultrices et. Nulla facilisi. Pellentesque rutrum sagittis orci at ultricies. Nunc luctus, augue nec lobortis condimentum, dui nunc tincidunt lorem, ut mattis sapien erat eu nibh. Aliquam a mattis eros. Integer ac metus pulvinar, viverra leo non, suscipit ex. Donec in auctor tortor. Vivamus rutrum ut ipsum a venenatis.\n"
+"\n"
+"Duis libero magna, condimentum quis mauris a, faucibus tincidunt elit. Curabitur sit amet magna ac est venenatis rhoncus at eu augue. Vivamus at lectus condimentum massa commodo consequat non ac ante. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet a ex consectetur malesuada. Fusce hendrerit enim velit, a varius mi commodo eu. Donec rutrum iaculis arcu at vestibulum. Nunc non malesuada neque. Praesent pulvinar urna quis aliquam dignissim. Donec ac volutpat mauris.\n"
+"\n"
+"Donec commodo elit ac placerat ullamcorper. Sed pharetra metus sit amet lectus scelerisque maximus. Donec id feugiat orci. Vivamus tortor purus, finibus ac porta ut, consequat sollicitudin nulla. In molestie scelerisque diam fermentum suscipit. Mauris lacinia luctus lorem at sagittis. Mauris maximus diam sed elit egestas, quis vehicula massa condimentum. Vestibulum et placerat dolor. ";
 	std::string encoded_txt;
 	std::string decoded_txt; // Final result
 
 	HuffmanDictionary dictionary(original_txt.data(), original_txt.size());
-	char read_buffer[4]; // Buffer for reading
-	char write_buffer[4]; // Buffer for writing
+	unsigned char read_buffer[8]; // Buffer for reading
+	char write_buffer[8]; // Buffer for writing
 
 	EXPECT_TRUE(dictionary.is_initialized());
 	if(!dictionary.is_initialized())
@@ -347,13 +353,16 @@ TEST(huffman, split_text_decoding)
 
 		while(true)
 		{
-			auto result = dictionary.decode(read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
+			printf("decode(read_cnt: %ld, min: %ld, offset: %ld)\n", read_cnt, std::min(chars_left, sizeof(write_buffer)), offset);
+			auto result = dictionary.decode((char*)read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
+			printf("result.first: %ld\nresult.second: %ld\n\n", result.first, result.second);
 
 			offset = result.first;
 			if(result.second == 0)
 			{
 				if(offset % 8)
 				{
+					printf("Moving read_buffer+%ld (%ld bytes)\n", offset/8, read_cnt - offset/8);
 					memmove(read_buffer, read_buffer+offset/8, read_cnt - offset/8);
 				}
 
