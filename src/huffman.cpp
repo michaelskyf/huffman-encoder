@@ -330,17 +330,14 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 			return {si, di*8+old_bits_set};
 		}
 
-		// Write bytes
+		// Write the bytes
 		memcpy(&dst[di], bytes.data(), bytes.size());
 		di += bytes.size();
-		dst[di] = byte;
+		if(bits_set)
+		{
+			dst[di] = byte;
+		}
 		old_bits_set = bits_set;
-	}
-	
-	// Write the remaining byte
-	if(bits_set)
-	{
-		dst[di] = byte;
 	}
 
 	return {src_size, di*8+bits_set};

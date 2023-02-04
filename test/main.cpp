@@ -256,9 +256,7 @@ TEST(huffman, split_text_encoding)
 		{
 
 			char byte_save = *write_buffer;
-			printf("encode(read_cnt: %ld, buffer size: %ld, offset: %ld)\n", read_cnt, sizeof(write_buffer), offset);
 			auto result = dictionary.encode(read_buffer_ptr, read_cnt, write_buffer, sizeof(write_buffer), offset);
-			printf("result.first: %ld\nresult.second: %ld\n\n", result.first, result.second);
 			
 			EXPECT_EQ((char)(byte_save << (8-offset)), (char)((*write_buffer) << (8-offset)));
 
@@ -276,16 +274,12 @@ TEST(huffman, split_text_encoding)
 
 			if(offset)
 			{
-				printf("Moving read_buffer+%ld (%ld bytes)\n", to_write, 1L);
 				memmove(write_buffer, write_buffer+to_write, 1);
 			}
 
 			read_cnt -= result.first;
 			read_buffer_ptr += result.first;
 		}
-
-		
-		printf("loop end\n");
 	}
 
 	if(offset)
@@ -314,8 +308,8 @@ TEST(huffman, split_text_decoding)
 	std::string decoded_txt; // Final result
 
 	HuffmanDictionary dictionary(original_txt.data(), original_txt.size());
-	unsigned char read_buffer[8]; // Buffer for reading
-	char write_buffer[8]; // Buffer for writing
+	unsigned char read_buffer[4]; // Buffer for reading
+	char write_buffer[4]; // Buffer for writing
 
 	EXPECT_TRUE(dictionary.is_initialized());
 	if(!dictionary.is_initialized())
