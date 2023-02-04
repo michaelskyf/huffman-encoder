@@ -302,10 +302,11 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 		catch(...)
 		{
 			printf("TODO\n");
+			return {si, di*8+old_bits_set};
 		}
 
 		std::vector<unsigned char> bytes{};
-		while(code.second)
+		while(true)
 		{
 			auto new_byte_data = encode_byte(byte, bits_set, code);
 			if(new_byte_data.second == 8)
@@ -317,6 +318,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 			{
 				byte = new_byte_data.first;
 				bits_set = new_byte_data.second;
+				break;
 			}
 
 		}
@@ -328,9 +330,10 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 			return {si, di*8+old_bits_set};
 		}
 
-		// Write full bytes
+		// Write bytes
 		memcpy(&dst[di], bytes.data(), bytes.size());
 		di += bytes.size();
+		dst[di] = byte;
 		old_bits_set = bits_set;
 	}
 	
