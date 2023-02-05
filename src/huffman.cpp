@@ -52,7 +52,7 @@ std::map<char, std::pair<uint64_t , size_t>> make_lookup_table(const huffman_tre
 }
 
 // Returns a byte and bits_set in that byte
-std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
+std::pair<unsigned char, size_t> encode_byte(char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
 {
 	unsigned char real_byte = byte & ~(std::numeric_limits<unsigned char>::max() << bits_set);
 	size_t bits_written = std::min(8-bits_set, code.second);
@@ -62,6 +62,22 @@ std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set
 	code.first >>= bits_written;
 
 	return {real_byte, bits_set + bits_written};
+}
+
+std::pair<std::string, size_t> encodeBytes(char byte, size_t bits_set, std::pair<uint64_t , size_t> code)
+{
+	std::string result;
+
+	while(code.second)
+	{
+		auto new_byte_data = encode_byte(byte, bits_set, code);
+
+		byte = new_byte_data.first;
+		result.push_back(byte);
+		bits_set = new_byte_data.second % 8;
+	}
+
+	return {result, bits_set};
 }
 
 } // unnamed namespace
@@ -229,11 +245,11 @@ bool HuffmanDictionary::is_initialized() const
 	return m_root.get();
 }
 
-std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, char byte, size_t bits_set)
+std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, char byte, size_t old_bits_set)
 {
 	if(!this->is_initialized())
 	{
-		return {0, bits_set};
+		return {0, old_bits_set};
 	}
 
 	if(dst_size > std::numeric_limits<size_t>::max()/8)
@@ -246,7 +262,6 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 	// si -> source index
 	// di -> destination index
 	// old_bits_set -> bits set on the last byte during the last write
-	size_t old_bits_set = bits_set;
 	size_t di = 0;
 	for(size_t si = 0; si < src_size; si++)
 	{
@@ -257,34 +272,26 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 		}
 		catch(...)
 		{
-			printf("TODO\n");
 			return {si, di*8+old_bits_set};
 		}
 
-		std::vector<unsigned char> bytes{};
-		while(code.second)
-		{
-			auto new_byte_data = encode_byte(byte, bits_set, code);
-
-			byte = new_byte_data.first;
-			bytes.emplace_back(byte);
-			bits_set = new_byte_data.second % 8;
-		}
+		auto[encoded_bytes, bits_set] = encodeBytes(byte, old_bits_set, code);
 
 		// If there's no space to write the data
-		if(di+bytes.size() > dst_size)
+		if(di+encoded_bytes.size() > dst_size)
 		{
 			// Don't save the new bytes
 			return {si, di*8+old_bits_set};
 		}
 
 		// Write the bytes
-		memcpy(&dst[di], bytes.data(), bytes.size());
-		di += bytes.size() - (bits_set ? 1 : 0); // If the last byte is not fully written, di should point to it
+		memcpy(&dst[di],encoded_bytes.data(), encoded_bytes.size());
+		di += encoded_bytes.size() - (bits_set ? 1 : 0); // If the last byte is not fully written, di should point to it
+		byte = encoded_bytes.back();
 		old_bits_set = bits_set;
 	}
 
-	return {src_size, di*8+bits_set};
+	return {src_size, di*8+old_bits_set};
 }
 
 std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset)
