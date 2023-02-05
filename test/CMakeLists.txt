@@ -3,12 +3,12 @@ set(TEST_EXECUTABLE "${PROJECT_NAME}-test")
 add_executable(
 	${TEST_EXECUTABLE}
 	main.cpp
-	../src/huffman.cpp
 	)
 
 target_link_libraries(
 	${TEST_EXECUTABLE}
 	PRIVATE
+	${PROJECT_NAME}-lib
 	GTest::GTest
 	GTest::gtest_main
 	)

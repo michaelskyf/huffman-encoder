@@ -11,60 +11,60 @@
 
 using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
 
-huffman_tree_node::huffman_tree_node(char c, size_t freq)
-	:m_character{c},
-	m_frequency{freq}
+namespace
 {
 
-}
-
-huffman_tree_node::huffman_tree_node(std::unique_ptr<huffman_tree_node>&& lhs, std::unique_ptr<huffman_tree_node>&& rhs, size_t freq)
-	:m_left{std::move(lhs)},
-	m_right{std::move(rhs)},
-	m_frequency{freq}
+// When travelling down the tree the code reversed, so we need to reverse it once again
+uint64_t reverse_code(uint64_t code, size_t depth)
 {
-
-}
-
-bool huffman_tree_node::is_character() const
-{
-	return !(m_left.get() || m_right.get());
-}
-
-huffman_tree_node::huffman_tree_node(const huffman_tree_node& node)
-{
-	*this = node;
-}
-
-huffman_tree_node::huffman_tree_node(huffman_tree_node&& node)
-{
-	*this = std::move(node);
-}
-
-huffman_tree_node& huffman_tree_node::operator=(const huffman_tree_node& node)
-{
-	m_character = node.m_character;
-	m_frequency = node.m_frequency;
-
-	if(node.m_left && node.m_right)
+	uint64_t new_code = 0;
+	while(depth--)
 	{
-		m_left = std::make_unique<huffman_tree_node>(*node.m_left);
-		m_right = std::make_unique<huffman_tree_node>(*node.m_right);
+		new_code |= (code & 1) << depth;
+		code >>= 1;
 	}
 
-	return *this;
+	return new_code;
 }
 
-huffman_tree_node& huffman_tree_node::operator=(huffman_tree_node&& node)
+// Returns a map that contains information unsed in translating characters into their corresponding code
+std::map<char, std::pair<uint64_t , size_t>> make_lookup_table(const huffman_tree_node& root)
 {
-	m_character = node.m_character;
-	m_frequency = node.m_frequency;
+	std::map<char, std::pair<uint64_t , size_t>> result;
 
-	m_left = std::move(node.m_left);
-	m_right = std::move(node.m_right);
+	std::function<void(const huffman_tree_node& node, uint64_t code, size_t depth)> recurse_tree =
+	[&](const huffman_tree_node& node, uint64_t code, size_t depth)
+	{
+		if(node.is_character())
+		{
+			result.emplace(node.m_character, std::make_pair(reverse_code(code, depth), depth));
+		}
+		else
+		{
+			recurse_tree(*node.m_right, code << 1, depth+1);
+			recurse_tree(*node.m_left, (code << 1) | 1, depth+1);
+		}
+	};
 
-	return *this;
+	recurse_tree(root, 0, 0);
+
+	return result;
 }
+
+// Returns a byte and bits_set in that byte
+std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
+{
+	unsigned char real_byte = byte & ~(std::numeric_limits<unsigned char>::max() << bits_set);
+	size_t bits_written = std::min(8-bits_set, code.second);
+
+	real_byte |= code.first << bits_set;
+	code.second -= bits_written;
+	code.first >>= bits_written;
+
+	return {real_byte, bits_set + bits_written};
+}
+
+} // unnamed namespace
 
 sorted_frequencies get_frequencies(const char* data, size_t size)
 {
@@ -229,61 +229,11 @@ bool HuffmanDictionary::is_initialized() const
 	return m_root.get();
 }
 
-// When travelling down the tree the code reversed, so we need to reverse it once again
-static uint64_t reverse_code(uint64_t code, size_t depth)
+std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, char byte, size_t bits_set)
 {
-	uint64_t new_code = 0;
-	while(depth--)
+	if(!this->is_initialized())
 	{
-		new_code |= (code & 1) << depth;
-		code >>= 1;
-	}
-
-	return new_code;
-}
-
-// Returns a map that contains information unsed in translating characters into their corresponding code
-static std::map<char, std::pair<uint64_t , size_t>> make_lookup_table(const huffman_tree_node& root)
-{
-	std::map<char, std::pair<uint64_t , size_t>> result;
-
-	std::function<void(const huffman_tree_node& node, uint64_t code, size_t depth)> recurse_tree =
-	[&](const huffman_tree_node& node, uint64_t code, size_t depth)
-	{
-		if(node.is_character())
-		{
-			result.emplace(node.m_character, std::make_pair(reverse_code(code, depth), depth));
-		}
-		else
-		{
-			recurse_tree(*node.m_right, code << 1, depth+1);
-			recurse_tree(*node.m_left, (code << 1) | 1, depth+1);
-		}
-	};
-
-	recurse_tree(root, 0, 0);
-
-	return result;
-}
-
-// Returns a byte and bits_set in that byte
-static std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
-{
-	unsigned char real_byte = byte & ~(std::numeric_limits<unsigned char>::max() << bits_set);
-	size_t bits_written = std::min(8-bits_set, code.second);
-
-	real_byte |= code.first << bits_set;
-	code.second -= bits_written;
-	code.first >>= bits_written;
-
-	return {real_byte, bits_set + bits_written};
-}
-
-std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset)
-{
-	if(this->is_initialized() == false || dst_size == 0)
-	{
-		return {0, offset};
+		return {0, bits_set};
 	}
 
 	if(dst_size > std::numeric_limits<size_t>::max()/8)
@@ -295,10 +245,9 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 	// si -> source index
 	// di -> destination index
-	size_t di = offset/8;
-	unsigned char byte = dst[di];
-	size_t bits_set = offset%8;
+	// old_bits_set -> bits set on the last byte during the last write
 	size_t old_bits_set = bits_set;
+	size_t di = 0;
 	for(size_t si = 0; si < src_size; si++)
 	{
 		std::pair<uint64_t , size_t> code;
@@ -331,7 +280,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 		// Write the bytes
 		memcpy(&dst[di], bytes.data(), bytes.size());
-		di += bytes.size() - (bits_set ? 1 : 0); // If the last byte is not fully written, di should still point to it
+		di += bytes.size() - (bits_set ? 1 : 0); // If the last byte is not fully written, di should point to it
 		old_bits_set = bits_set;
 	}
 

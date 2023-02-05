@@ -364,7 +364,7 @@ void compress()
 			char* r_buf = read_buffer;
 			while(read_bytes)
 			{
-				auto result = dictionary.encode(r_buf, read_bytes, write_buffer, sizeof(write_buffer), offset);
+				auto result = dictionary.encode(r_buf, read_bytes, write_buffer, sizeof(write_buffer), *write_buffer, offset);
 				offset = result.second;
 				buffer_fill = offset/8;
 				offset -= (offset/8)*8;

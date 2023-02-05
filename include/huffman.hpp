@@ -1,32 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
-struct huffman_tree_node
-{
-	huffman_tree_node() = default;
-	huffman_tree_node(char c, size_t freq);
-	huffman_tree_node(std::unique_ptr<huffman_tree_node>&& lhs, std::unique_ptr<huffman_tree_node>&& rhs, size_t freq);
-	~huffman_tree_node() = default;
-
-	huffman_tree_node(const huffman_tree_node&);
-	huffman_tree_node(huffman_tree_node&&);
-	huffman_tree_node& operator=(const huffman_tree_node&);
-	huffman_tree_node& operator=(huffman_tree_node&&);
-
-	/**
-	 * @brief				check if the node i a character node
-	 * @returns				true if the node is character node, otherwise false
-	 * @throws				nothing
-	 */
-	bool is_character() const;
-
-	std::unique_ptr<huffman_tree_node> m_left;
-	std::unique_ptr<huffman_tree_node> m_right;
-	char m_character;
-	size_t m_frequency;
-};
+#include "huffman_tree_node.hpp"
 
 class HuffmanDictionary
 {
@@ -82,13 +58,14 @@ public:
 	 * @brief						create a new dictionary (if not already initialized) and encode the data according to it
 	 * @param[in]		src			source
 	 * @param[in]		src_size	source size
-	 * @param[in, out]	dst			destination
+	 * @param[out]		dst			destination
 	 * @param[in]		dst_size	destination size
-	 * @param[in]		offset		numer of bits to skip from the first byte of source
+	 * @param[in]		byte		byte containing bits remaining from the last call to the function
+	 * @param[in]		bits_set	numer of bits used in byte
 	 * @returns						number of bytes read from src (first) and number of bits written to dst (the last byte may be partially written) (second)
 	 * @throws						std::bad_alloc
 	 */
-	std::pair<size_t, size_t> encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset = 0);
+	std::pair<size_t, size_t> encode(const char* src, size_t src_size, char* dst, size_t dst_size, char byte, size_t bits_set);
 
 	/**
 	 * @brief						decode given data using the dictionary
