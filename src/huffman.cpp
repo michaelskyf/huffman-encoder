@@ -229,8 +229,45 @@ bool HuffmanDictionary::is_initialized() const
 	return m_root.get();
 }
 
+// When travelling down the tree the code reversed, so we need to reverse it once again
+static uint64_t reverse_code(uint64_t code, size_t depth)
+{
+	uint64_t new_code = 0;
+	while(depth--)
+	{
+		new_code |= (code & 1) << depth;
+		code >>= 1;
+	}
+
+	return new_code;
+}
+
+// Returns a map that contains information unsed in translating characters into their corresponding code
+static std::map<char, std::pair<uint64_t , size_t>> make_lookup_table(const huffman_tree_node& root)
+{
+	std::map<char, std::pair<uint64_t , size_t>> result;
+
+	std::function<void(const huffman_tree_node& node, uint64_t code, size_t depth)> recurse_tree =
+	[&](const huffman_tree_node& node, uint64_t code, size_t depth)
+	{
+		if(node.is_character())
+		{
+			result.emplace(node.m_character, std::make_pair(reverse_code(code, depth), depth));
+		}
+		else
+		{
+			recurse_tree(*node.m_right, code << 1, depth+1);
+			recurse_tree(*node.m_left, (code << 1) | 1, depth+1);
+		}
+	};
+
+	recurse_tree(root, 0, 0);
+
+	return result;
+}
+
 // Returns a byte and bits_set in that byte
-std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
+static std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
 {
 	unsigned char real_byte = byte & ~(std::numeric_limits<unsigned char>::max() << bits_set);
 	size_t bits_written = std::min(8-bits_set, code.second);
@@ -244,39 +281,9 @@ std::pair<unsigned char, size_t> encode_byte(unsigned char byte, size_t bits_set
 
 std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset)
 {
-	std::map<char, std::pair<uint64_t , size_t>> lookup_table{};
-
-	// When travelling down the tree the code reversed, so we need to reverse it once again
-	auto reverse_code = [](uint64_t code, size_t depth)
+	if(this->is_initialized() == false || dst_size == 0)
 	{
-		uint64_t new_code = 0;
-		while(depth--)
-		{
-			new_code |= (code & 1) << depth;
-			code >>= 1;
-		}
-
-		return new_code;
-	};
-	
-	// Fills up an std::map that contains information to translate characters into their corresponding code
-	std::function<void(const huffman_tree_node& node, uint64_t code, size_t depth)> make_lookup_table =
-	[&](const huffman_tree_node& node, uint64_t code, size_t depth)
-	{
-		if(node.is_character())
-		{
-			lookup_table.emplace(node.m_character, std::make_pair(reverse_code(code, depth), depth));
-		}
-		else
-		{
-			make_lookup_table(*node.m_right, code << 1, depth+1);
-			make_lookup_table(*node.m_left, (code << 1) | 1, depth+1);
-		}
-	};
-
-	if(this->is_initialized() == false || src_size == 0 || dst_size == 0)
-	{
-		return {};
+		return {0, offset};
 	}
 
 	if(dst_size > std::numeric_limits<size_t>::max()/8)
@@ -284,14 +291,14 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 		dst_size = std::numeric_limits<size_t>::max()/8;
 	}
 
-	make_lookup_table(*this->m_root, 0, 0);
+	auto lookup_table = make_lookup_table(*this->m_root);
 
-	unsigned char byte = dst[offset/8];
-	size_t bits_set = offset%8;
-	size_t old_bits_set = bits_set;
 	// si -> source index
 	// di -> destination index
 	size_t di = offset/8;
+	unsigned char byte = dst[di];
+	size_t bits_set = offset%8;
+	size_t old_bits_set = bits_set;
 	for(size_t si = 0; si < src_size; si++)
 	{
 		std::pair<uint64_t , size_t> code;
@@ -306,25 +313,17 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 		}
 
 		std::vector<unsigned char> bytes{};
-		while(true)
+		while(code.second)
 		{
 			auto new_byte_data = encode_byte(byte, bits_set, code);
-			if(new_byte_data.second == 8)
-			{
-				bytes.emplace_back(new_byte_data.first);
-				bits_set = 0;
-			}
-			else
-			{
-				byte = new_byte_data.first;
-				bits_set = new_byte_data.second;
-				break;
-			}
 
+			byte = new_byte_data.first;
+			bytes.emplace_back(byte);
+			bits_set = new_byte_data.second % 8;
 		}
 
-		// If di + bytes.size() (+1 if there are bits set in the byte) is >= dst_size, there's no space to write the data
-		if(di+bytes.size()+(bits_set ? 1 : 0) > dst_size)
+		// If there's no space to write the data
+		if(di+bytes.size() > dst_size)
 		{
 			// Don't save the new bytes
 			return {si, di*8+old_bits_set};
@@ -332,11 +331,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 		// Write the bytes
 		memcpy(&dst[di], bytes.data(), bytes.size());
-		di += bytes.size();
-		if(bits_set)
-		{
-			dst[di] = byte;
-		}
+		di += bytes.size() - (bits_set ? 1 : 0); // If the last byte is not fully written, di should still point to it
 		old_bits_set = bits_set;
 	}
 

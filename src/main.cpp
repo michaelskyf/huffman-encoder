@@ -453,16 +453,13 @@ void decompress()
 
 		while(true)
 		{
-			printf("decode(read_cnt: %ld, min: %ld, offset: %ld)\n", read_cnt, std::min(chars_left, sizeof(write_buffer)), offset);
 			auto result = dictionary.decode(read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
-			printf("result.first: %ld\nresult.second: %ld\n\n", result.first, result.second);
 
 			offset = result.first;
 			if(result.second == 0)
 			{
 				if(offset % 8)
 				{
-					printf("Moving read_buffer+%ld (%ld bytes)\n", offset/8, read_cnt - offset/8);
 					memmove(read_buffer, read_buffer+offset/8, read_cnt - offset/8);
 				}
 
