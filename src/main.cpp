@@ -248,7 +248,7 @@ std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
 		{
 			try
 			{
-				new_node->m_character = json_node.get<char>("character");
+				new_node->m_character = json_node.get<unsigned char>("character");
 			}
 			catch(...)
 			{
@@ -291,7 +291,7 @@ bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
 
 		if(node.is_character())
 		{
-			json_node.put("character", node.m_character);
+			json_node.put("character", (unsigned char)node.m_character);
 		}
 		else if(node.m_left && node.m_right)
 		{
@@ -319,7 +319,7 @@ bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
  */
 void compress()
 {
-		char read_buffer[1024], write_buffer[1024];
+		unsigned char read_buffer[1024], write_buffer[1024];
 		std::ifstream input_file(parsed_options.input_path);
 		std::ofstream output_file(parsed_options.output_path);
 		HuffmanDictionary dictionary;
@@ -333,13 +333,13 @@ void compress()
 
 		while(true)
 		{
-			input_file.read(read_buffer, sizeof(read_buffer));
+			input_file.read((char*)read_buffer, sizeof(read_buffer));
 			if(!(read_bytes = input_file.gcount()))
 			{
 				break;
 			}
 
-			dictionary.create_part(read_buffer, read_bytes);
+			dictionary.create_part((char*)read_buffer, read_bytes);
 		}
 
 		if(!dictionary.is_initialized())
@@ -355,21 +355,21 @@ void compress()
 		size_t buffer_fill;
 		while(true)
 		{
-			input_file.read(read_buffer, sizeof(read_buffer));
+			input_file.read((char*)read_buffer, sizeof(read_buffer));
 			if(!(read_bytes = input_file.gcount()))
 			{
 				break;
 			}
 
-			char* r_buf = read_buffer;
+			unsigned char* r_buf = read_buffer;
 			while(read_bytes)
 			{
-				auto result = dictionary.encode(r_buf, read_bytes, write_buffer, sizeof(write_buffer), *write_buffer, offset);
+				auto result = dictionary.encode((char*)r_buf, read_bytes, (char*)write_buffer, sizeof(write_buffer), *write_buffer, offset);
 				offset = result.second;
 				buffer_fill = offset/8;
 				offset -= (offset/8)*8;
 
-				if(!output_file.write(write_buffer, buffer_fill))
+				if(!output_file.write((char*)write_buffer, buffer_fill))
 				{
 					std::cerr << "Failed to write to output file" << std::endl;
 					exit(EXIT_FAILURE);
@@ -387,7 +387,7 @@ void compress()
 
 		if(offset)
 		{
-			if(!output_file.write(write_buffer, 1))
+			if(!output_file.write((char*)write_buffer, 1))
 			{
 				std::cerr << "Failed to write to output file" << std::endl;
 				exit(EXIT_FAILURE);
@@ -409,7 +409,6 @@ void compress()
  */
 void decompress()
 {
-	char read_buffer[1024], write_buffer[1024];
 	std::ifstream input_file(parsed_options.input_path);
 	std::ofstream output_file(parsed_options.output_path);
 	HuffmanDictionary dictionary;
@@ -431,48 +430,41 @@ void decompress()
 		exit(EXIT_FAILURE);
 	}
 
-	size_t encoded_size_left = std::filesystem::file_size(parsed_options.input_path);
-	size_t chars_left = dictionary.size();
-	size_t read_cnt = 0;
+	std::string read_buf;
+	std::string write_buf(3, 0);
 	size_t offset = 0;
-	while(true)
-	{
-		size_t read_offset = read_cnt - offset/8;
-		offset = offset % 8;
-		size_t to_read = std::min(encoded_size_left, sizeof(read_buffer)-read_offset);
+	size_t chars_left = dictionary.size();
 
-		input_file.read(read_buffer+read_offset, to_read);
-		read_cnt = input_file.gcount();
-		if(read_cnt == 0)
+	while(chars_left)
+	{
+		std::string tmp(3, 0);
+		input_file.read(tmp.data(), tmp.size());
+		if(input_file.gcount() == 0)
 		{
 			break;
 		}
 
-		encoded_size_left -= read_cnt;
-		read_cnt += read_offset;
+		read_buf.append(tmp);
 
 		while(true)
 		{
-			auto result = dictionary.decode(read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
-
-			offset = result.first;
-			if(result.second == 0)
+			auto[src_read, dst_written] = dictionary.decode(read_buf.data(), read_buf.size(), write_buf.data(), std::min(write_buf.size(), chars_left), offset);
+			if(dst_written == 0)
 			{
-				if(offset % 8)
-				{
-					memmove(read_buffer, read_buffer+offset/8, read_cnt - offset/8);
-				}
-
 				break;
 			}
 
-			size_t to_write = result.second;
-			if(!output_file.write(write_buffer, to_write))
+			offset = src_read % 8;
+
+			read_buf.erase(0, src_read/8);
+
+			if(!output_file.write(write_buf.data(), dst_written))
 			{
-				printf("fail\n");
+				std::cerr << "Error while writing output file. Aborting" << std::endl;
+				return;
 			}
 
-			chars_left -= to_write;
+			chars_left -= dst_written;
 		}
 	}
 }
