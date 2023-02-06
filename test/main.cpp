@@ -301,28 +301,38 @@ TEST(huffman, split_text_decoding)
 
 	
 	std::stringstream stream(encoded_txt);
-	std::string read_buf(3, 0);
+	std::string read_buf;
 	std::string write_buf(3, 0);
-	size_t chars_left = dictionary.size();
 	size_t offset = 0;
-	size_t buf_left = read_buf.size();
+	size_t chars_left = dictionary.size();
 
+//__asm__("int3");
 	while(chars_left)
 	{
-		buf_left = offset ? buf_left-1 : buf_left;
-		stream.read(read_buf.data() + read_buf.size() - buf_left, buf_left);
-		buf_left = stream.gcount();
-		if(buf_left == 0)
+		std::string tmp(3, 0);
+		stream.read(tmp.data(), tmp.size());
+		if(stream.gcount() == 0)
 		{
 			break;
 		}
-		buf_left = offset ? buf_left+1 : buf_left;
 
-		auto[src_read, dst_written] = dictionary.decode(read_buf.data(), buf_left, write_buf.data(), write_buf.size(), offset);
-		offset = src_read % 8;
-		buf_left = src_read / 8;
+		read_buf.append(tmp);
 
-		decoded_txt.append(write_buf.data(), dst_written);
+		while(true)
+		{
+			auto[src_read, dst_written] = dictionary.decode(read_buf.data(), read_buf.size(), write_buf.data(), std::min(write_buf.size(), chars_left), offset);
+			if(dst_written == 0)
+			{
+				break;
+			}
+			
+			offset = src_read % 8;
+
+			read_buf.erase(0, src_read/8);
+
+			decoded_txt.append(write_buf.data(), dst_written);
+			chars_left -= dst_written;
+		}
 	}
 	
 

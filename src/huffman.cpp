@@ -85,11 +85,8 @@ std::pair<std::string, size_t> encodeBytes(char byte, size_t bits_set, std::pair
 
 std::pair<char, bool> decodeByte(DecodingByteLoader& loader, huffman_tree_node* current_node)
 {
-
-	//__asm__("int3");
 	while(!loader.empty() && !current_node->is_character())
 	{
-		printf("%x: %s\n", loader.value(), loader.value() & 1 ? "true" : "false");
 		if(loader.value() & 1)
 		{
 			current_node = current_node->m_left.get();
@@ -332,11 +329,12 @@ std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_
 		auto[byte, is_set] = decodeByte(loader, m_root.get());
 		if(!is_set)
 		{
-			return {loader.bitsProcessed(), di};
+			return {old_bits_set, di};
 		}
 
 		dst[di] = byte;
+		old_bits_set = loader.bitsProcessed();
 	}
 
-	return {loader.bitsProcessed(), dst_size};
+	return {old_bits_set, dst_size};
 }
