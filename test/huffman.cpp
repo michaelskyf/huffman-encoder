@@ -277,7 +277,7 @@ TEST(huffman, split_text_decoding)
 {
 	
 	std::string original_txt =
-		" Morbi tempor tempor semper. Integer ultricies, quam luctus tempor consectetur, quam tortor vehicula enim, vel ullamcorper sapien nulla nec sem. Sed posuere dui quis porttitor vulputate. Ut laoreet sapien libero, eget faucibus enim ultrices et. Nulla facilisi. Pellentesque rutrum sagittis orci at ultricies. Nunc luctus, augue nec lobortis condimentum, dui nunc tincidunt lorem, ut mattis sapien erat eu nibh. Aliquam a mattis eros. Integer ac metus pulvinar, viverra leo non, suscipit ex. Donec in auctor tortor. Vivamus rutrum ut ipsum a venenatis.\n"
+		" łążźśćęńóMorbi tempor tempor semper. Integer ultricies, quam luctus tempor consectetur, quam tortor vehicula enim, vel ullamcorper sapien nulla nec sem. Sed posuere dui quis porttitor vulputate. Ut laoreet sapien libero, eget faucibus enim ultrices et. Nulla facilisi. Pellentesque rutrum sagittis orci at ultricies. Nunc luctus, augue nec lobortis condimentum, dui nunc tincidunt lorem, ut mattis sapien erat eu nibh. Aliquam a mattis eros. Integer ac metus pulvinar, viverra leo non, suscipit ex. Donec in auctor tortor. Vivamus rutrum ut ipsum a venenatis.\n"
 "\n"
 "Duis libero magna, condimentum quis mauris a, faucibus tincidunt elit. Curabitur sit amet magna ac est venenatis rhoncus at eu augue. Vivamus at lectus condimentum massa commodo consequat non ac ante. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet a ex consectetur malesuada. Fusce hendrerit enim velit, a varius mi commodo eu. Donec rutrum iaculis arcu at vestibulum. Nunc non malesuada neque. Praesent pulvinar urna quis aliquam dignissim. Donec ac volutpat mauris.\n"
 "\n"
@@ -306,7 +306,6 @@ TEST(huffman, split_text_decoding)
 	size_t offset = 0;
 	size_t chars_left = dictionary.size();
 
-//__asm__("int3");
 	while(chars_left)
 	{
 		std::string tmp(3, 0);
@@ -325,7 +324,7 @@ TEST(huffman, split_text_decoding)
 			{
 				break;
 			}
-			
+
 			offset = src_read % 8;
 
 			read_buf.erase(0, src_read/8);
@@ -334,7 +333,6 @@ TEST(huffman, split_text_decoding)
 			chars_left -= dst_written;
 		}
 	}
-	
 
 	EXPECT_EQ(original_txt, decoded_txt);
 }

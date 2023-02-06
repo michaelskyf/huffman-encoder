@@ -3,6 +3,7 @@ add_library(
 	STATIC
 	huffman.cpp
 	huffman_tree_node.cpp
+	DecodingByteLoader.cpp
 )
 
 add_executable(
