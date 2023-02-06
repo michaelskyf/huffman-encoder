@@ -1,0 +1,11 @@
+option('tests',
+  type : 'feature',
+  value : 'enabled',
+  description : 'Enables tests.'
+)
+
+option('docs',
+  type : 'feature',
+  value : 'disabled',
+  description : 'Builds the documentation.'
+)
