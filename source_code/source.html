@@ -284,7 +284,7 @@
 <li><p><strong>src_size</strong> – <strong>[in]</strong> source size </p></li>
 <li><p><strong>dst</strong> – <strong>[out]</strong> destination </p></li>
 <li><p><strong>dst_size</strong> – <strong>[in]</strong> destination size </p></li>
-<li><p><strong>byte</strong> – <strong>[in]</strong> byte containing bits remaining from the last call to the function </p></li>
+<li><p><strong>byte</strong> – <strong>[in]</strong> dst byte containing bits remaining from the last call to the function </p></li>
 <li><p><strong>bits_set</strong> – <strong>[in]</strong> numer of bits used in byte </p></li>
 </ul>
 </dd>
@@ -299,16 +299,16 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17HuffmanDictionary6decodeEPKc6size_tPc6size_t6size_t">
-<span id="_CPPv3N17HuffmanDictionary6decodeEPKc6size_tPc6size_t6size_t"></span><span id="_CPPv2N17HuffmanDictionary6decodeEPKc6size_tPc6size_t6size_t"></span><span id="HuffmanDictionary::decode__cCP.s.cP.s.s"></span><span class="target" id="classHuffmanDictionary_1a4e76ff1ad95d6782e53b04f9767d2ac3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">decode</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">src</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_size</span></span>, <span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dst</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dst_size</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_offset</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17HuffmanDictionary6decodeEPKc6size_tPc6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N17HuffmanDictionary6decodeEPKc6size_tPc6size_t6size_t"></span><span id="_CPPv2N17HuffmanDictionary6decodeEPKc6size_tPc6size_t6size_t"></span><span id="HuffmanDictionary::decode__cCP.s.cP.s.s"></span><span class="target" id="classHuffmanDictionary_1a8957f544f621e5ae473e2722cdbc2e34"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">decode</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">src</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_size</span></span>, <span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dst</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dst_size</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bits_set</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17HuffmanDictionary6decodeEPKc6size_tPc6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>decode given data using the dictionary </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>src</strong> – <strong>[in]</strong> source </p></li>
 <li><p><strong>src_size</strong> – <strong>[in]</strong> source size </p></li>
-<li><p><strong>dst</strong> – <strong>[inout]</strong> destination </p></li>
+<li><p><strong>dst</strong> – <strong>[out]</strong> destination </p></li>
 <li><p><strong>dst_size</strong> – <strong>[in]</strong> destination size </p></li>
-<li><p><strong>src_offset</strong> – <strong>[in]</strong> numer of bits to skip from the first byte of source </p></li>
+<li><p><strong>bits_set</strong> – <strong>[in]</strong> numer of bits used in byte </p></li>
 </ul>
 </dd>
 <dt class="field-even">Throws</dt>
