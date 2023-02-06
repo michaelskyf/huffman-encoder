@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <string>
 
-#include <huffman.hpp>
+#include <HuffmanDictionary.hpp>
 
 /**
  Useful:

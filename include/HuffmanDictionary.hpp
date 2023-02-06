@@ -2,13 +2,13 @@
 
 #include <memory>
 
-#include "huffman_tree_node.hpp"
+#include "HuffmanNode.hpp"
 
 class HuffmanDictionary
 {
 public:
 	HuffmanDictionary() = default;
-	HuffmanDictionary(const huffman_tree_node& root);
+	HuffmanDictionary(const HuffmanNode& root);
 	HuffmanDictionary(const char* data, size_t size);
 	~HuffmanDictionary() = default;
 
@@ -52,7 +52,7 @@ public:
 	 * @returns				nullptr if the tree is not initialized, otherwise a pointer to the root node
 	 * @throws				nothing
 	 */
-	const huffman_tree_node* data() const;
+	const HuffmanNode* data() const;
 
 	/**
 	 * @brief						create a new dictionary (if not already initialized) and encode the data according to it
@@ -80,5 +80,5 @@ public:
 	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t bits_set);
 
 private:
-	std::unique_ptr<huffman_tree_node> m_root;
+	std::unique_ptr<HuffmanNode> m_root;
 };

@@ -27,7 +27,7 @@ dekompresji)
 #include <string>
 #include <vector>
 #include <getopt.h>
-#include <huffman.hpp>
+#include <HuffmanDictionary.hpp>
 #include <boost/json/src.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -214,16 +214,16 @@ static int parse_args(int argc, char* argv[])
  * @param[in]	path	name of file from where the tree would be read
  * @returns		pointer to a new tree on success, nullptr on failure
  */
-std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
+std::unique_ptr<HuffmanNode> read_huffman_tree_json(const char* path)
 {
 	pt::ptree root;
 	pt::read_json(path, root);
-	std::unique_ptr<huffman_tree_node> result{};
+	std::unique_ptr<HuffmanNode> result{};
 
-	std::function<std::unique_ptr<huffman_tree_node>(const pt::ptree&)> recursive_get =
+	std::function<std::unique_ptr<HuffmanNode>(const pt::ptree&)> recursive_get =
 	[&](const pt::ptree& json_node)
 	{
-		auto new_node = std::make_unique<huffman_tree_node>();
+		auto new_node = std::make_unique<HuffmanNode>();
 
 		try
 		{
@@ -231,7 +231,7 @@ std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
 		}
 		catch(...)
 		{
-			return std::unique_ptr<huffman_tree_node>{};
+			return std::unique_ptr<HuffmanNode>{};
 		}
 
 		try
@@ -252,7 +252,7 @@ std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
 			}
 			catch(...)
 			{
-				return std::unique_ptr<huffman_tree_node>{};
+				return std::unique_ptr<HuffmanNode>{};
 			}
 		}
 
@@ -278,13 +278,13 @@ std::unique_ptr<huffman_tree_node> read_huffman_tree_json(const char* path)
  * @param[in]	root	root of the tree
  * @returns		true when suceeded, false on fail
  */
-bool write_huffman_tree_json(const char* path, const huffman_tree_node& root)
+bool write_huffman_tree_json(const char* path, const HuffmanNode& root)
 {
 	pt::ptree json_root, json_root_node;
 	std::ofstream file{path};
 
-	std::function<void(pt::ptree&, const huffman_tree_node&)> recursive_put =
-	[&](pt::ptree& json_node, const huffman_tree_node& node)
+	std::function<void(pt::ptree&, const HuffmanNode&)> recursive_put =
+	[&](pt::ptree& json_node, const HuffmanNode& node)
 	{
 
 		json_node.put("frequency", node.m_frequency);

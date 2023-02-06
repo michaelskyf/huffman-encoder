@@ -1,6 +1,6 @@
 huffman_source = files(
-	'huffman.cpp',
-	'huffman_tree_node.cpp',
+	'HuffmanDictionary.cpp',
+	'HuffmanNode.cpp',
 	'DecodingByteLoader.cpp',
 )
 

@@ -7,10 +7,10 @@
 #include <vector>
 #include <iostream>
 
-#include <huffman.hpp>
+#include <HuffmanDictionary.hpp>
 #include "DecodingByteLoader.hpp"
 
-using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
+using sorted_frequencies = std::vector<std::unique_ptr<HuffmanNode>>;
 
 namespace
 {
@@ -31,12 +31,12 @@ uint64_t reverse_code(uint64_t code, size_t depth)
 }
 
 // Returns a map that contains information unsed in translating characters into their corresponding code
-std::map<char, std::pair<uint64_t , size_t>> make_lookup_table(const huffman_tree_node& root)
+std::map<char, std::pair<uint64_t , size_t>> make_lookup_table(const HuffmanNode& root)
 {
 	std::map<char, std::pair<uint64_t , size_t>> result;
 
-	std::function<void(const huffman_tree_node& node, uint64_t code, size_t depth)> recurse_tree =
-	[&](const huffman_tree_node& node, uint64_t code, size_t depth)
+	std::function<void(const HuffmanNode& node, uint64_t code, size_t depth)> recurse_tree =
+	[&](const HuffmanNode& node, uint64_t code, size_t depth)
 	{
 		if(node.is_character())
 		{
@@ -83,7 +83,7 @@ std::pair<std::string, size_t> encodeBytes(char byte, size_t bits_set, std::pair
 	return {result, bits_set};
 }
 
-std::pair<char, bool> decodeByte(DecodingByteLoader& loader, huffman_tree_node* current_node)
+std::pair<char, bool> decodeByte(DecodingByteLoader& loader, HuffmanNode* current_node)
 {
 	while(!loader.empty() && !current_node->is_character())
 	{
@@ -125,16 +125,16 @@ sorted_frequencies get_frequencies(const char* data, size_t size)
 		// Insert the node into result
 		result.emplace(std::find_if(result.begin(),
 								result.end(),
-								[&](const std::unique_ptr<huffman_tree_node>& n)
+								[&](const std::unique_ptr<HuffmanNode>& n)
 								{ return n->m_frequency >= freqs[i]; }),
-								std::make_unique<huffman_tree_node>(i, freqs[i]));
+								std::make_unique<HuffmanNode>(i, freqs[i]));
 	}
 
 	return result;
 }
 
-HuffmanDictionary::HuffmanDictionary(const huffman_tree_node& root)
-	: m_root{std::make_unique<huffman_tree_node>(root)}
+HuffmanDictionary::HuffmanDictionary(const HuffmanNode& root)
+	: m_root{std::make_unique<HuffmanNode>(root)}
 {
 	
 }
@@ -153,7 +153,7 @@ HuffmanDictionary& HuffmanDictionary::operator=(const HuffmanDictionary& node)
 {
 	if(node.m_root)
 	{
-		m_root = std::make_unique<huffman_tree_node>(*node.m_root);
+		m_root = std::make_unique<HuffmanNode>(*node.m_root);
 	}
 	else
 	{
@@ -181,7 +181,7 @@ void HuffmanDictionary::create(const char* data, size_t size)
 	create_part(data, size);
 }
 
-const huffman_tree_node* HuffmanDictionary::data() const
+const HuffmanNode* HuffmanDictionary::data() const
 {
 	return m_root.get();
 }
@@ -191,8 +191,8 @@ void HuffmanDictionary::create_part(const char* data, size_t size)
 	sorted_frequencies frequencies = get_frequencies(data, size);
 	std::vector<std::pair<char, size_t>> old_frequencies;
 
-	std::function<void(const huffman_tree_node& node)> get_old_frequencies =
-	[&](const huffman_tree_node& node)
+	std::function<void(const HuffmanNode& node)> get_old_frequencies =
+	[&](const HuffmanNode& node)
 	{
 		if(node.is_character())
 		{
@@ -226,9 +226,9 @@ void HuffmanDictionary::create_part(const char* data, size_t size)
 			{
 				frequencies.emplace(std::find_if(frequencies.begin(),
 								frequencies.end(),
-								[&](const std::unique_ptr<huffman_tree_node>& n)
+								[&](const std::unique_ptr<HuffmanNode>& n)
 								{ return n->m_frequency >= old_freq.second; }),
-								std::make_unique<huffman_tree_node>(old_freq.first, old_freq.second));
+								std::make_unique<HuffmanNode>(old_freq.first, old_freq.second));
 			}
 		}
 	}
@@ -236,7 +236,7 @@ void HuffmanDictionary::create_part(const char* data, size_t size)
 	while(frequencies.size() > 1)
 	{
 		size_t new_frequency = frequencies[0]->m_frequency + frequencies[1]->m_frequency;
-		auto new_node = std::make_unique<huffman_tree_node>(std::move(frequencies[0]), std::move(frequencies[1]), new_frequency);
+		auto new_node = std::make_unique<HuffmanNode>(std::move(frequencies[0]), std::move(frequencies[1]), new_frequency);
 
 		// Remove the first two nodes
 		frequencies.erase(frequencies.begin(), frequencies.begin()+2);
@@ -244,7 +244,7 @@ void HuffmanDictionary::create_part(const char* data, size_t size)
 		// Insert the new node
 		frequencies.insert(std::find_if(frequencies.begin(),
 									frequencies.end(),
-									[&](const std::unique_ptr<huffman_tree_node>& n)
+									[&](const std::unique_ptr<HuffmanNode>& n)
 									{ return n->m_frequency >= new_frequency; }),
 									std::move(new_node));
 	}
