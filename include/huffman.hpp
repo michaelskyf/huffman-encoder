@@ -60,7 +60,7 @@ public:
 	 * @param[in]		src_size	source size
 	 * @param[out]		dst			destination
 	 * @param[in]		dst_size	destination size
-	 * @param[in]		byte		byte containing bits remaining from the last call to the function
+	 * @param[in]		byte		dst byte containing bits remaining from the last call to the function
 	 * @param[in]		bits_set	numer of bits used in byte
 	 * @returns						number of bytes read from src (first) and number of bits written to dst (the last byte may be partially written) (second)
 	 * @throws						std::bad_alloc
@@ -71,13 +71,13 @@ public:
 	 * @brief						decode given data using the dictionary
 	 * @param[in]		src			source
 	 * @param[in]		src_size	source size
-	 * @param[in, out]	dst			destination
+	 * @param[out]		dst			destination
 	 * @param[in]		dst_size	destination size
-	 * @param[in]		src_offset	numer of bits to skip from the first byte of source
+	 * @param[in]		bits_set	numer of bits used in byte
 	 * @returns						number of bits read from src (first) and number of bytes written to dst (second)
 	 * @throws						std::bad_alloc
 	 */
-	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset = 0);
+	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t bits_set);
 
 private:
 	std::unique_ptr<huffman_tree_node> m_root;

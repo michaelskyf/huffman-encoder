@@ -97,25 +97,35 @@ TEST(huffman, decoding)
 {
 	HuffmanDictionary coder;
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
-	char buffer[1024];
+	const std::basic_string<unsigned char> encoded_string =
+	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
+	std::string decoded_string(test_string.size(), 0);
+
+	coder.create(test_string.c_str(), test_string.size());
+
+	auto[src_read, decoded_size] = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), decoded_string.data(), std::min(coder.size(), decoded_string.size()), 0);
+
+	EXPECT_EQ(test_string.size(), decoded_size);
+	EXPECT_EQ(9*8+2, src_read);
+	EXPECT_EQ(test_string, decoded_string);
+}
+
+TEST(huffman, decoding_offset)
+{
+	HuffmanDictionary coder;
+	std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
 	const std::basic_string<unsigned char> encoded_string =
 	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
 
 	coder.create(test_string.c_str(), test_string.size());
+	test_string = "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
+	std::string decoded_string(test_string.size(), 0);
 
-	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, std::min(coder.size(), sizeof(buffer)));
+	auto[src_read, decoded_size] = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), decoded_string.data(), std::min(coder.size()-1, decoded_string.size()), 4);
 
-	EXPECT_EQ(test_string.size(), decoded_offset.second);
-
-	if(test_string.size() != decoded_offset.second)
-	{
-		FAIL();
-	}
-
-	for(size_t i = 0; i < test_string.size(); i++)
-	{
-		EXPECT_EQ(buffer[i], test_string[i]);
-	}
+	EXPECT_EQ(test_string.size(), decoded_size);
+	EXPECT_EQ(9*8+2, src_read);
+	EXPECT_EQ(test_string, decoded_string);
 }
 
 TEST(huffman, decoding_empty)
@@ -129,7 +139,7 @@ TEST(huffman, decoding_empty)
 
 	EXPECT_EQ(coder.is_initialized(), false);
 
-	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer));
+	auto decoded_offset = coder.decode((char*)encoded_string.c_str(), encoded_string.size(), buffer, sizeof(buffer), 0);
 
 	EXPECT_EQ(decoded_offset.second, 0);
 }
@@ -154,7 +164,7 @@ void test_string(const std::string& original)
 
 	std::string decoded;
 	decoded.resize(dictionary.size());
-	auto decode_result = dictionary.decode(encoded.data(), encoded.size(), decoded.data(), decoded.size());
+	auto decode_result = dictionary.decode(encoded.data(), encoded.size(), decoded.data(), decoded.size(), 0);
 	if(decode_result.second != dictionary.size())
 	{
 		FAIL();
@@ -276,8 +286,6 @@ TEST(huffman, split_text_decoding)
 	std::string decoded_txt; // Final result
 
 	HuffmanDictionary dictionary(original_txt.data(), original_txt.size());
-	unsigned char read_buffer[4]; // Buffer for reading
-	char write_buffer[4]; // Buffer for writing
 
 	EXPECT_TRUE(dictionary.is_initialized());
 	if(!dictionary.is_initialized())
@@ -291,51 +299,32 @@ TEST(huffman, split_text_decoding)
 	size_t written_bytes = result.second/8 + (result.second % 8 ? 1 : 0);
 	encoded_txt.resize(written_bytes);
 
-	// Decode the string
-	size_t encoded_pos = 0;
-	size_t encoded_size_left = encoded_txt.size();
+	
+	std::stringstream stream(encoded_txt);
+	std::string read_buf(3, 0);
+	std::string write_buf(3, 0);
 	size_t chars_left = dictionary.size();
-	size_t read_cnt = 0;
 	size_t offset = 0;
-	while(true)
-	{
-		size_t read_offset = read_cnt - offset/8;
-		offset = offset % 8;
-		size_t to_read = std::min(encoded_size_left, sizeof(read_buffer)-read_offset);
+	size_t buf_left = read_buf.size();
 
-		read_cnt = encoded_txt.copy((char*)read_buffer+read_offset, to_read, encoded_pos);
-		if(read_cnt == 0)
+	while(chars_left)
+	{
+		buf_left = offset ? buf_left-1 : buf_left;
+		stream.read(read_buf.data() + read_buf.size() - buf_left, buf_left);
+		buf_left = stream.gcount();
+		if(buf_left == 0)
 		{
 			break;
 		}
+		buf_left = offset ? buf_left+1 : buf_left;
 
-		encoded_pos += read_cnt;
-		encoded_size_left -= read_cnt;
-		read_cnt += read_offset;
+		auto[src_read, dst_written] = dictionary.decode(read_buf.data(), buf_left, write_buf.data(), write_buf.size(), offset);
+		offset = src_read % 8;
+		buf_left = src_read / 8;
 
-		while(true)
-		{
-			auto result = dictionary.decode((char*)read_buffer, read_cnt, write_buffer, std::min(chars_left, sizeof(write_buffer)), offset);
-
-			offset = result.first;
-			if(result.second == 0)
-			{
-				if(offset % 8)
-				{
-					memmove(read_buffer, read_buffer+offset/8, read_cnt - offset/8);
-				}
-
-				break;
-			}
-
-			size_t to_write = result.second;
-
-			size_t old_size = decoded_txt.size();
-			EXPECT_EQ(decoded_txt.append(write_buffer, to_write).size() - old_size, to_write);
-
-			chars_left -= to_write;
-		}
+		decoded_txt.append(write_buf.data(), dst_written);
 	}
+	
 
 	EXPECT_EQ(original_txt, decoded_txt);
 }

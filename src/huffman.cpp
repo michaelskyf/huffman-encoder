@@ -8,11 +8,14 @@
 #include <iostream>
 
 #include <huffman.hpp>
+#include "DecodingByteLoader.hpp"
 
 using sorted_frequencies = std::vector<std::unique_ptr<huffman_tree_node>>;
 
 namespace
 {
+
+
 
 // When travelling down the tree the code reversed, so we need to reverse it once again
 uint64_t reverse_code(uint64_t code, size_t depth)
@@ -78,6 +81,28 @@ std::pair<std::string, size_t> encodeBytes(char byte, size_t bits_set, std::pair
 	}
 
 	return {result, bits_set};
+}
+
+std::pair<char, bool> decodeByte(DecodingByteLoader& loader, huffman_tree_node* current_node)
+{
+
+	//__asm__("int3");
+	while(!loader.empty() && !current_node->is_character())
+	{
+		printf("%x: %s\n", loader.value(), loader.value() & 1 ? "true" : "false");
+		if(loader.value() & 1)
+		{
+			current_node = current_node->m_left.get();
+		}
+		else
+		{
+			current_node = current_node->m_right.get();
+		}
+
+		loader >>= 1;
+	}
+
+	return {current_node->m_character, current_node->is_character()};
 }
 
 } // unnamed namespace
@@ -285,7 +310,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 		}
 
 		// Write the bytes
-		memcpy(&dst[di],encoded_bytes.data(), encoded_bytes.size());
+		encoded_bytes.copy(&dst[di], encoded_bytes.size());
 		di += encoded_bytes.size() - (bits_set ? 1 : 0); // If the last byte is not fully written, di should point to it
 		byte = encoded_bytes.back();
 		old_bits_set = bits_set;
@@ -294,58 +319,24 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 	return {src_size, di*8+old_bits_set};
 }
 
-std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t src_offset)
+std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t old_bits_set)
 {
-	if(!this->is_initialized() || src_size == 0 || dst_size == 0)
+	if(!this->is_initialized())
 	{
-		return {0, 0};
+		return {old_bits_set, 0};
 	}
 
-	size_t bits_left = src_offset % 8;
-	size_t return_bits = bits_left;
-	if(bits_left == 0)
+	DecodingByteLoader loader(src, src_size, old_bits_set);
+	for(size_t di = 0; di < dst_size; di++)
 	{
-		bits_left = 8;
-	}
-
-	size_t dst_index = 0;
-	huffman_tree_node* current_node = m_root.get();
-	for(size_t i = src_offset / 8; i < src_size; i++)
-	{
-		unsigned char byte = src[i] >> ((8-bits_left)%8);
-
-		while(bits_left)
+		auto[byte, is_set] = decodeByte(loader, m_root.get());
+		if(!is_set)
 		{
-			if(dst_index >= dst_size)
-			{
-				return {i*8+return_bits, dst_index};
-			}
-
-			if(!current_node->is_character())
-			{
-				if(byte & 1)
-				{
-					current_node = current_node->m_left.get();
-				}
-				else
-				{
-					current_node = current_node->m_right.get();
-				}
-
-				byte >>= 1;
-				bits_left--;
-			}
-
-			if(current_node->is_character())
-			{
-				dst[dst_index++] = current_node->m_character;
-				current_node = m_root.get();
-				return_bits = bits_left;
-			}
+			return {loader.bitsProcessed(), di};
 		}
 
-		bits_left = 8;
+		dst[di] = byte;
 	}
 
-	return {(src_size-1)*8+(return_bits ? return_bits : 8), dst_index};
+	return {loader.bitsProcessed(), dst_size};
 }
