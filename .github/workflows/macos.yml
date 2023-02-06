@@ -11,7 +11,7 @@ on:
 
 jobs:
   macos:
-    name: Build project for MacOS with ${{matrix.compiler.name}}
+    name: ${{matrix.compiler.name}}
     runs-on: macos-latest
 
     strategy:
@@ -29,7 +29,16 @@ jobs:
         run: git submodule update --init
 
       - name: Install dependencies
-        run: brew install googletest boost
+        run: brew install googletest
+
+      - name: Install boost
+        uses: MarkusJx/install-boost@v2.4.1
+        id: install-boost
+        with:
+          boost_version: 1.81.0
+          
+      - name: Link boost include directory
+        run: ln -sf ${{ steps.install-boost.outputs.BOOST_ROOT }}/include/boost include
 
       - name: Run CMake
         run: cmake . -DCMAKE_CXX_COMPILER=${{matrix.compiler.cxx}}
