@@ -1,6 +1,6 @@
 -Wall
 -Wextra
 -Wundef
--Wpedantic
+-pedantic
 -std=c++20
 -Iinclude

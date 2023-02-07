@@ -61,7 +61,7 @@ std::pair<unsigned char, size_t> encode_byte(char byte, size_t bits_set, std::pa
 	unsigned char real_byte = byte & ~(std::numeric_limits<unsigned char>::max() << bits_set);
 	size_t bits_written = std::min(8-bits_set, code.second);
 
-	real_byte |= code.first << bits_set;
+	real_byte |= static_cast<char>(code.first << bits_set);
 	code.second -= bits_written;
 	code.first >>= bits_written;
 
@@ -114,7 +114,7 @@ sorted_frequencies get_frequencies(const char* data, size_t size)
 	// Get frequencies of each character
 	while(data < end)
 	{
-		freqs[(unsigned char)*data]++;
+		freqs[static_cast<unsigned char>(*data)]++;
 		data++;
 	}
 

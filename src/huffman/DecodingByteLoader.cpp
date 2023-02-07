@@ -1,6 +1,6 @@
 #include "DecodingByteLoader.hpp"
 
-DecodingByteLoader::DecodingByteLoader(const char* src, size_t src_size, unsigned short offset)
+DecodingByteLoader::DecodingByteLoader(const char* src, size_t src_size, size_t offset)
 	: m_src{src},
 	  m_shift{0},
 	  m_bits_processed{0},
@@ -16,7 +16,7 @@ bool DecodingByteLoader::empty() const
 
 char DecodingByteLoader::value() const
 {
-	return empty() ? 0 : *m_src >> m_shift;
+	return empty() ? '\0' : static_cast<char>(*m_src >> m_shift);
 }
 
 size_t DecodingByteLoader::bitsProcessed() const

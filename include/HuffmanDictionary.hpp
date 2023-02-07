@@ -83,7 +83,7 @@ public:
 	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t bits_set);
 
 private:
-	std::unique_ptr<HuffmanNode> m_root;
+	std::unique_ptr<HuffmanNode> m_root{};
 };
 
 } // namespace huffman

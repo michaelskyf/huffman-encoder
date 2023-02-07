@@ -24,10 +24,10 @@ struct HuffmanNode
 	 */
 	bool is_character() const;
 
-	std::unique_ptr<HuffmanNode> m_left;
-	std::unique_ptr<HuffmanNode> m_right;
-	char m_character;
-	size_t m_frequency;
+	std::unique_ptr<HuffmanNode> m_left{};
+	std::unique_ptr<HuffmanNode> m_right{};
+	char m_character{};
+	size_t m_frequency{};
 };
 
 } // namespace huffman

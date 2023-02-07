@@ -6,7 +6,7 @@ class DecodingByteLoader
 {
 public:
 
-	DecodingByteLoader(const char* src, size_t src_size, unsigned short offset);
+	DecodingByteLoader(const char* src, size_t src_size, size_t offset);
 
 	bool empty() const;
 
@@ -20,7 +20,7 @@ public:
 
 private:
 	const char* m_src;
-	unsigned short m_shift;
+	size_t m_shift;
 	size_t m_bits_processed;
 	const size_t m_total_bits;
 };

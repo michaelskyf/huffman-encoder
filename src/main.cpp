@@ -120,7 +120,7 @@ static int parse_args(int argc, char* argv[])
 	{
 		auto& fullopt = options[i];
 
-		long_options.push_back({fullopt.longopt ? fullopt.longopt : "", fullopt.arg_type, 0, fullopt.shortopt});
+		long_options.push_back({fullopt.longopt ? fullopt.longopt : "", fullopt.arg_type, nullptr, fullopt.shortopt});
 	}
 	long_options.push_back({});
 
@@ -292,7 +292,7 @@ bool write_huffman_tree_json(const char* path, const HuffmanNode& root)
 
 		if(node.is_character())
 		{
-			json_node.put("character", (unsigned char)node.m_character);
+			json_node.put("character", static_cast<unsigned char>(node.m_character));
 		}
 		else if(node.m_left && node.m_right)
 		{
@@ -320,7 +320,7 @@ bool write_huffman_tree_json(const char* path, const HuffmanNode& root)
  */
 void compress()
 {
-		unsigned char read_buffer[1024], write_buffer[1024];
+		char read_buffer[1024], write_buffer[1024];
 		std::ifstream input_file(parsed_options.input_path);
 		std::ofstream output_file(parsed_options.output_path);
 		HuffmanDictionary dictionary;
@@ -334,13 +334,13 @@ void compress()
 
 		while(true)
 		{
-			input_file.read((char*)read_buffer, sizeof(read_buffer));
+			input_file.read(read_buffer, sizeof(read_buffer));
 			if(!(read_bytes = input_file.gcount()))
 			{
 				break;
 			}
 
-			dictionary.create_part((char*)read_buffer, read_bytes);
+			dictionary.create_part(read_buffer, read_bytes);
 		}
 
 		if(!dictionary.is_initialized())
@@ -356,21 +356,21 @@ void compress()
 		size_t buffer_fill;
 		while(true)
 		{
-			input_file.read((char*)read_buffer, sizeof(read_buffer));
+			input_file.read(read_buffer, sizeof(read_buffer));
 			if(!(read_bytes = input_file.gcount()))
 			{
 				break;
 			}
 
-			unsigned char* r_buf = read_buffer;
+			char* r_buf = read_buffer;
 			while(read_bytes)
 			{
-				auto result = dictionary.encode((char*)r_buf, read_bytes, (char*)write_buffer, sizeof(write_buffer), *write_buffer, offset);
+				auto result = dictionary.encode(r_buf, read_bytes, write_buffer, sizeof(write_buffer), *write_buffer, offset);
 				offset = result.second;
 				buffer_fill = offset/8;
 				offset -= (offset/8)*8;
 
-				if(!output_file.write((char*)write_buffer, buffer_fill))
+				if(!output_file.write(write_buffer, buffer_fill))
 				{
 					std::cerr << "Failed to write to output file" << std::endl;
 					exit(EXIT_FAILURE);
@@ -388,7 +388,7 @@ void compress()
 
 		if(offset)
 		{
-			if(!output_file.write((char*)write_buffer, 1))
+			if(!output_file.write(write_buffer, 1))
 			{
 				std::cerr << "Failed to write to output file" << std::endl;
 				exit(EXIT_FAILURE);

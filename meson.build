@@ -2,8 +2,11 @@ project('ppk-project-huffman', 'cpp',
     version : '1.0',
     license : [ 'gplv3'],
     meson_version : '>= 0.61.2',
-    default_options : [ 'warning_level=3', 'buildtype=debugoptimized', 'cpp_std=c++20' ]
+    default_options : [ 'warning_level=everything', 'buildtype=debugoptimized', 'cpp_std=c++20', 'werror=false' ]
 )
+
+add_global_arguments('-Wundef', '-pedantic', language : 'cpp')
+add_global_arguments('-Wno-suggest-attribute=pure', '-Wno-padded', language : 'cpp')
 
 add_project_arguments('-DVERSION="@0@"'.format(meson.project_version()), language : 'cpp')
 
