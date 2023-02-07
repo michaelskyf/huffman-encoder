@@ -2,6 +2,9 @@
 
 #include <memory>
 
+namespace huffman
+{
+
 struct HuffmanNode
 {
 	HuffmanNode() = default;
@@ -26,3 +29,5 @@ struct HuffmanNode
 	char m_character;
 	size_t m_frequency;
 };
+
+} // namespace huffman

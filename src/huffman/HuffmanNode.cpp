@@ -1,5 +1,8 @@
 #include <HuffmanNode.hpp>
 
+namespace huffman
+{
+
 HuffmanNode::HuffmanNode(char c, size_t freq)
 	:m_character{c},
 	m_frequency{freq}
@@ -54,3 +57,5 @@ HuffmanNode& HuffmanNode::operator=(HuffmanNode&& node)
 
 	return *this;
 }
+
+} // namespace huffman

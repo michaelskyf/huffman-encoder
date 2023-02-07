@@ -10,12 +10,13 @@
 #include <HuffmanDictionary.hpp>
 #include "DecodingByteLoader.hpp"
 
+namespace huffman
+{
+
 using sorted_frequencies = std::vector<std::unique_ptr<HuffmanNode>>;
 
 namespace
 {
-
-
 
 // When travelling down the tree the code reversed, so we need to reverse it once again
 uint64_t reverse_code(uint64_t code, size_t depth)
@@ -338,3 +339,5 @@ std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_
 
 	return {old_bits_set, dst_size};
 }
+
+} // namespace huffman

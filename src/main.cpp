@@ -37,6 +37,7 @@ dekompresji)
 #endif
 
 namespace pt = boost::property_tree;
+using namespace huffman;
 
 static struct
 {

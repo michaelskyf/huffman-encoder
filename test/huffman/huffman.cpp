@@ -5,6 +5,8 @@
 
 #include <HuffmanDictionary.hpp>
 
+using namespace huffman;
+
 /**
  Useful:
 #include <vector>

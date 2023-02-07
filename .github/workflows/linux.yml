@@ -46,3 +46,7 @@ jobs:
       - name: Run tests
         id: runTests
         run: cd build; ninja test 
+
+      - name: Read logs
+        if: success() || failure()
+        run: cat build/meson-logs/testlog.txt | cat

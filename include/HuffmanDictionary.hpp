@@ -4,6 +4,9 @@
 
 #include "HuffmanNode.hpp"
 
+namespace huffman
+{
+
 class HuffmanDictionary
 {
 public:
@@ -82,3 +85,5 @@ public:
 private:
 	std::unique_ptr<HuffmanNode> m_root;
 };
+
+} // namespace huffman
