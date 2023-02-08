@@ -56,9 +56,9 @@ std::map<char, std::pair<uint64_t , size_t>> make_lookup_table(const HuffmanNode
 }
 
 // Returns a byte and bits_set in that byte
-std::pair<unsigned char, size_t> encode_byte(char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
+std::pair<char, size_t> encode_byte(char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
 {
-	unsigned char real_byte = byte & ~(std::numeric_limits<unsigned char>::max() << bits_set);
+	char real_byte = static_cast<char>(byte & ~(std::numeric_limits<unsigned char>::max() << bits_set));
 	size_t bits_written = std::min(8-bits_set, code.second);
 
 	real_byte |= static_cast<char>(code.first << bits_set);
@@ -74,11 +74,11 @@ std::pair<std::string, size_t> encodeBytes(char byte, size_t bits_set, std::pair
 
 	while(code.second)
 	{
-		auto new_byte_data = encode_byte(byte, bits_set, code);
+		auto[new_byte, new_bits_set]= encode_byte(byte, bits_set, code);
 
-		byte = new_byte_data.first;
+		byte = new_byte;
 		result.push_back(byte);
-		bits_set = new_byte_data.second % 8;
+		bits_set = new_bits_set % 8;
 	}
 
 	return {result, bits_set};
@@ -102,8 +102,6 @@ std::pair<char, bool> decodeByte(DecodingByteLoader& loader, HuffmanNode* curren
 
 	return {current_node->m_character, current_node->is_character()};
 }
-
-} // unnamed namespace
 
 sorted_frequencies get_frequencies(const char* data, size_t size)
 {
@@ -133,6 +131,8 @@ sorted_frequencies get_frequencies(const char* data, size_t size)
 
 	return result;
 }
+
+} // unnamed namespace
 
 HuffmanDictionary::HuffmanDictionary(const HuffmanNode& root)
 	: m_root{std::make_unique<HuffmanNode>(root)}
