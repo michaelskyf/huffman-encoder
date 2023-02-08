@@ -1,4 +1,4 @@
-name: MacOS
+name: Windows
 on:
   push:
     branches: [ master ]
@@ -12,27 +12,29 @@ on:
 jobs:
   macos:
     name: ${{matrix.compiler.name}}
-    runs-on: macos-latest
+    runs-on: windows-latest
 
     strategy:
       fail-fast: false
       matrix:
         compiler:
-          - {name: GCC, cxx: g++}
-          - {name: Clang, cxx: clang++}
+          - {name: CL, cxx: cl}
 
     steps:
       - name: Checkout respository
         uses: actions/checkout@v3
+      
+      - name: Add MSVC dev cmd
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Update git submodules
         run: git submodule update --init
 
       - name: Install dependencies
-        run: brew install python3; sudo pip3 install meson ninja
+        run: choco install python; pip3 install meson ninja
 
       - name: Run Meson
-        run: CXX=${{matrix.compiler.cxx}} meson setup build -Db_sanitize=address -Dexe=disabled
+        run: cmd /v /c "set CXX=${{matrix.compiler.cxx}} && meson setup build -Dexe=disabled"
 
       - name: Compile and run tests
         id: runTests
@@ -40,4 +42,4 @@ jobs:
 
       - name: Read logs
         if: success() || failure()
-        run: cat build/meson-logs/testlog.txt | cat
+        run: type build/meson-logs/testlog.txt

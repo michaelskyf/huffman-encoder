@@ -5,8 +5,18 @@ project('ppk-project-huffman', 'cpp',
     default_options : [ 'warning_level=everything', 'buildtype=debugoptimized', 'cpp_std=c++20', 'werror=false' ]
 )
 
-add_global_arguments('-Wundef', '-pedantic', language : 'cpp')
-add_global_arguments('-Wno-suggest-attribute=pure', '-Wno-padded', language : 'cpp')
+cxxflags = [
+  '-Wundef', '-pedantic',
+  '-Wno-suggest-attribute=pure', '-Wno-padded',
+]
+
+compiler = meson.get_compiler('cpp')
+
+foreach f :cxxflags
+  if compiler.has_argument(f)
+    add_global_arguments(f, language : 'cpp')
+  endif
+endforeach
 
 add_project_arguments('-DVERSION="@0@"'.format(meson.project_version()), language : 'cpp')
 
@@ -15,7 +25,7 @@ project_sources = []
 project_header_files = []
 project_test_sources = []
 
-inc = [include_directories('include')]
+inc = [ include_directories('include', get_option('includedir')) ]
 
 subdir('src')
 
@@ -25,11 +35,17 @@ ppk_project_huffman_bin_dep_libs = [
   libhuffman
 ]
 
-ppk_project_huffman_bin = executable('ppk_project_huffman_bin', 
-  main_source, 
-  include_directories : inc, 
-  dependencies : ppk_project_huffman_bin_deps,
-  link_with : ppk_project_huffman_bin_dep_libs)
+build_exe = get_option('exe')
+
+if not build_exe.disabled()
+
+  ppk_project_huffman_bin = executable('ppk_project_huffman_bin', 
+    main_source, 
+    include_directories : inc, 
+    dependencies : ppk_project_huffman_bin_deps,
+    link_with : ppk_project_huffman_bin_dep_libs)
+
+endif
 
 
 subdir('test')

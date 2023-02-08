@@ -31,17 +31,8 @@ jobs:
       - name: Install dependencies
         run: sudo apt install python3-pip; sudo pip3 install meson ninja
 
-      - name: Install boost
-        uses: MarkusJx/install-boost@v2.4.1
-        id: install-boost
-        with:
-          boost_version: 1.81.0
-      
-      - name: Link boost include directory
-        run: ln -sf ${{ steps.install-boost.outputs.BOOST_ROOT }}/include/boost include
-
       - name: Run Meson
-        run: meson setup build -Db_sanitize=address
+        run: CXX=${{matrix.compiler.cxx}} meson setup build -Db_sanitize=address -Dexe=disabled
 
       - name: Compile and run tests
         id: runTests
