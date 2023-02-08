@@ -29,7 +29,7 @@ jobs:
         run: git submodule update --init
 
       - name: Install dependencies
-        run: sudo apt install meson
+        run: sudo apt install python3-pip; sudo pip3 install meson ninja
 
       - name: Install boost
         uses: MarkusJx/install-boost@v2.4.1
@@ -43,9 +43,9 @@ jobs:
       - name: Run Meson
         run: meson setup build -Db_sanitize=address
 
-      - name: Run tests
+      - name: Compile and run tests
         id: runTests
-        run: cd build; ninja test 
+        run: ninja -C build test 
 
       - name: Read logs
         if: success() || failure()
