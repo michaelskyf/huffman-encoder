@@ -1,4 +1,4 @@
-#include <HuffmanNode.hpp>
+/*#include <HuffmanNode.hpp>
 
 namespace huffman
 {
@@ -58,4 +58,4 @@ HuffmanNode& HuffmanNode::operator=(HuffmanNode&& node)
 	return *this;
 }
 
-} // namespace huffman
+} // namespace huffman*/

@@ -6,7 +6,8 @@ if not build_tests.disabled()
     gtest_dep = dependency('gtest', fallback: ['gtest', 'gtest_dep'], required: build_tests)
 
     if gtest_dep.found() and gtest_main_dep.found()
-        subdir('huffman')
+        inc += include_directories('../src')
+        subdir('src')
     endif
 
 endif

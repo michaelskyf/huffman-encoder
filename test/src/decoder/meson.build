@@ -1,11 +1,11 @@
 test_sources = [
-    'huffman.cpp',
-	'DecodingByteLoader.cpp'
+    'ByteLoader.cpp',
+	'ByteDecoder.cpp'
 ]
 
-e = executable('test_huffman', test_sources,
+e = executable('decoder', test_sources,
 		dependencies : gtest_main_dep,
 		include_directories : [inc],
 		link_with : [libhuffman])
 
-test('huffman', e)
+test('decoder', e)

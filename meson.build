@@ -25,33 +25,8 @@ endforeach
 
 add_project_arguments('-DVERSION="@0@"'.format(meson.project_version()), language : 'cpp')
 
-library_path = []
-project_sources = []
-project_header_files = []
-project_test_sources = []
-
 inc = [ include_directories('include', get_option('includedir')) ]
 
 subdir('src')
-
-ppk_project_huffman_bin_deps = []
-
-ppk_project_huffman_bin_dep_libs = [
-  libhuffman
-]
-
-build_exe = get_option('exe')
-
-if not build_exe.disabled()
-
-  ppk_project_huffman_bin = executable('ppk_project_huffman_bin', 
-    main_source, 
-    include_directories : inc, 
-    dependencies : ppk_project_huffman_bin_deps,
-    link_with : ppk_project_huffman_bin_dep_libs)
-
-endif
-
-
 subdir('test')
 # subdir('docs')

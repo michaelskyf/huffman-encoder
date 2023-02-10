@@ -1,4 +1,10 @@
-main_source = files('main.cpp')
-project_sources += main_source
+source_files = files(
+	'HuffmanDictionary.cpp',
+	'HuffmanNode.cpp',
+)
 
-subdir('huffman')
+subdir('decoder')
+
+libhuffman = static_library('huffman',
+	source_files,
+	include_directories : inc)

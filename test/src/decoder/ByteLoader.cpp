@@ -1,28 +1,30 @@
-#include "src/DecodingByteLoader.hpp"
+#include <decoder/ByteLoader.hpp>
 #include <gtest/gtest.h>
 
-TEST(DecodingByteLoader, empty)
+using namespace huffman::decoder;
+
+TEST(decoder_ByteLoader, empty)
 {
-	auto object = DecodingByteLoader(nullptr, 0, 0);
+	auto object = ByteLoader(nullptr, 0, 0);
 
 	EXPECT_TRUE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 0);
 	EXPECT_EQ(object.totalBits(), 0);
 }
 
-TEST(DecodingByteLoader, empty_offset)
+TEST(decoder_ByteLoader, empty_offset)
 {
-	auto object = DecodingByteLoader(nullptr, 0, 12);
+	auto object = ByteLoader(nullptr, 0, 12);
 
 	EXPECT_TRUE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 0);
 	EXPECT_EQ(object.totalBits(), 0);
 }
 
-TEST(DecodingByteLoader, one_byte)
+TEST(decoder_ByteLoader, one_byte)
 {
 	char byte = '\xB3';
-	auto object = DecodingByteLoader(&byte, 1, 3);
+	auto object = ByteLoader(&byte, 1, 3);
 
 	EXPECT_FALSE(object.empty());
 	EXPECT_EQ(object.value() & 0b111, (byte >> 3) & 0b111);
@@ -30,10 +32,10 @@ TEST(DecodingByteLoader, one_byte)
 	EXPECT_EQ(object.totalBits(), 8);
 }
 
-TEST(DecodingByteLoader, one_byte_shift)
+TEST(decoder_ByteLoader, one_byte_shift)
 {
 	char byte = '\xB3';
-	auto object = DecodingByteLoader(&byte, 1, 0);
+	auto object = ByteLoader(&byte, 1, 0);
 
 	object >>= 3;
 
@@ -43,20 +45,20 @@ TEST(DecodingByteLoader, one_byte_shift)
 	EXPECT_EQ(object.totalBits(), 8);
 }
 
-TEST(DecodingByteLoader, one_byte_big_offset)
+TEST(decoder_ByteLoader, one_byte_big_offset)
 {
 	char byte = '\xB3';
-	auto object = DecodingByteLoader(&byte, 1, 9);
+	auto object = ByteLoader(&byte, 1, 9);
 
 	EXPECT_TRUE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 8);
 	EXPECT_EQ(object.totalBits(), 8);
 }
 
-TEST(DecodingByteLoader, one_byte_big_shift)
+TEST(decoder_ByteLoader, one_byte_big_shift)
 {
 	char byte = '\xB3';
-	auto object = DecodingByteLoader(&byte, 1, 0);
+	auto object = ByteLoader(&byte, 1, 0);
 
 	object >>= 9;
 
@@ -65,10 +67,10 @@ TEST(DecodingByteLoader, one_byte_big_shift)
 	EXPECT_EQ(object.totalBits(), 8);
 }
 
-TEST(DecodingByteLoader, byte_array_shift)
+TEST(decoder_ByteLoader, byte_array_shift)
 {
 	std::string bytes{ '\xAA', '\xBB', '\xAA', '\xBB' };
-	auto object = DecodingByteLoader(bytes.data(), bytes.size(), 0);
+	auto object = ByteLoader(bytes.data(), bytes.size(), 0);
 
 	object >>= 16;
 
@@ -78,10 +80,10 @@ TEST(DecodingByteLoader, byte_array_shift)
 	EXPECT_EQ('\xAA', object.value());
 }
 
-TEST(DecodingByteLoader, byte_array_offset)
+TEST(decoder_ByteLoader, byte_array_offset)
 {
 	std::string bytes{ '\xAA', '\xBB', '\xAA', '\xBB' };
-	auto object = DecodingByteLoader(bytes.data(), bytes.size(), 16);
+	auto object = ByteLoader(bytes.data(), bytes.size(), 16);
 
 	EXPECT_FALSE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 16);
