@@ -1,3 +1,4 @@
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -6,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include <iostream>
+#include <queue>
 
 #include <HuffmanDictionary.hpp>
 #include "HuffmanNode.hpp"
@@ -15,57 +17,66 @@
 namespace huffman
 {
 
-using frequencies = std::vector<std::unique_ptr<HuffmanCharacterNode>>;
-
 namespace
 {
 
-// When travelling down the tree the code reversed, so we need to reverse it once again
-uint64_t reverse_code(uint64_t code, size_t depth)
+void get_frequencies(std::array<size_t, 256>& array, const char* src, size_t src_size)
 {
-	uint64_t new_code = 0;
-	while(depth--)
+	for(size_t i = 0; i < src_size; i++)
 	{
-		new_code |= (code & 1) << depth;
-		code >>= 1;
-	}
+		unsigned char index = static_cast<unsigned char>(src[i]);
 
-	return new_code;
+		array[index]++;
+	}
 }
 
-// Returns a byte and bits_set in that byte
-std::pair<char, size_t> encode_byte(char byte, size_t bits_set, std::pair<uint64_t , size_t>& code)
+void get_frequencies(std::array<size_t, 256>& array, const HuffmanNode& node)
 {
-	char real_byte = static_cast<char>(byte & ~(std::numeric_limits<unsigned char>::max() << bits_set));
-	size_t bits_written = std::min(8-bits_set, code.second);
-
-	real_byte |= static_cast<char>(code.first << bits_set);
-	code.second -= bits_written;
-	code.first >>= bits_written;
-
-	return {real_byte, bits_set + bits_written};
+	if(node.is_character_node())
+	{
+		const auto& char_node = static_cast<const HuffmanCharacterNode&>(node);
+		unsigned char index = static_cast<unsigned char>(char_node.character());
+		
+		array[index] += char_node.frequency();
+	}
+	else
+	{
+		const auto& tree_node = static_cast<const HuffmanTreeNode&>(node);
+		get_frequencies(array, *tree_node.left());
+		get_frequencies(array, *tree_node.right());
+	}
 }
 
-std::pair<std::string, size_t> encodeBytes(char byte, size_t bits_set, std::pair<uint64_t , size_t> code)
+std::unique_ptr<HuffmanTreeNode> make_huffman_tree(std::priority_queue<std::pair<size_t, std::unique_ptr<HuffmanNode>>>& frequencies)
 {
-	std::string result;
-
-	while(code.second)
+	while(frequencies.size() > 1)
 	{
-		auto[new_byte, new_bits_set]= encode_byte(byte, bits_set, code);
+		std::unique_ptr<HuffmanNode> bottom_nodes[2];
 
-		byte = new_byte;
-		result.push_back(byte);
-		bits_set = new_bits_set % 8;
+		bottom_nodes[0] = std::move(const_cast<std::unique_ptr<HuffmanNode>&>(frequencies.top().second));
+		frequencies.pop();
+
+		bottom_nodes[1] = std::move(const_cast<std::unique_ptr<HuffmanNode>&>(frequencies.top().second));
+		frequencies.pop();
+
+		auto new_tree_node = std::make_unique<HuffmanTreeNode>(std::move(bottom_nodes[0]), std::move(bottom_nodes[1]));
+		frequencies.emplace(new_tree_node->frequency(), std::move(new_tree_node));
 	}
 
-	return {result, bits_set};
+	if(frequencies.size() == 0)
+	{
+		return {};
+	}
+	else
+	{
+		return {};
+	}
 }
 
 } // unnamed namespace
 
-HuffmanDictionary::HuffmanDictionary(const HuffmanNode& root)
-	: m_root{std::make_unique<HuffmanNode>(root)}
+HuffmanDictionary::HuffmanDictionary(const HuffmanTreeNode& root)
+	: m_root{std::make_unique<HuffmanTreeNode>(root)}
 {
 	
 }
@@ -84,7 +95,7 @@ HuffmanDictionary& HuffmanDictionary::operator=(const HuffmanDictionary& node)
 {
 	if(node.m_root)
 	{
-		m_root = std::make_unique<HuffmanNode>(*node.m_root);
+		m_root = std::make_unique<HuffmanTreeNode>(*node.m_root);
 	}
 	else
 	{
@@ -101,15 +112,15 @@ HuffmanDictionary& HuffmanDictionary::operator=(HuffmanDictionary&& node)
 	return *this;
 }
 
-HuffmanDictionary::HuffmanDictionary(const char* data, size_t size)
+HuffmanDictionary::HuffmanDictionary(const char* src, size_t src_size)
 {
-	create(data, size);
+	create(src, src_size);
 }
 
-void HuffmanDictionary::create(const char* data, size_t size)
+void HuffmanDictionary::create(const char* src, size_t src_size)
 {
 	m_root = {};
-	create_part(data, size);
+	create_part(src, src_size);
 }
 
 const HuffmanNode* HuffmanDictionary::data() const
@@ -117,26 +128,50 @@ const HuffmanNode* HuffmanDictionary::data() const
 	return m_root.get();
 }
 
-void HuffmanDictionary::create_part(const char* data, size_t size)
+void HuffmanDictionary::create_part(const char* src, size_t src_size)
 {
-	
+	std::array<size_t, 256> byte_frequencies{};
+
+	// Get frequencies from the data
+	get_frequencies(byte_frequencies, src, src_size);
+
+	// Get frequencies from the tree if it exists
+	if(!empty())
+	{
+		get_frequencies(byte_frequencies, *m_root.get());
+	}
+
+	// Convert the array to priority_queue
+	std::priority_queue<std::pair<size_t, std::unique_ptr<HuffmanNode>>> frequencies;
+	for(size_t i = 0; i < byte_frequencies.size(); i++)
+	{
+		size_t freq = byte_frequencies[i];
+		// Trim characters that do not appear
+		if(freq > 0)
+		{
+			frequencies.emplace(freq, std::make_unique<HuffmanCharacterNode>(static_cast<char>(i), freq));
+		}
+	}
+
+	// Make the new root
+	m_root = make_huffman_tree(frequencies);
 }
 
 size_t HuffmanDictionary::size() const
 {
-	if(!is_initialized()) return 0;
+	if(empty()) return 0;
 
 	return m_root->frequency();
 }
 
-bool HuffmanDictionary::is_initialized() const
+bool HuffmanDictionary::empty() const
 {
-	return m_root.get();
+	return !m_root.get();
 }
 
 std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_size, char* dst, size_t dst_size, char byte, size_t offset)
 {
-	if(!this->is_initialized())
+	if(!this->empty())
 	{
 		return {0, offset};
 	}
@@ -156,7 +191,7 @@ std::pair<size_t, size_t> HuffmanDictionary::encode(const char* src, size_t src_
 
 std::pair<size_t, size_t> HuffmanDictionary::decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t offset)
 {
-	if(!this->is_initialized())
+	if(!this->empty())
 	{
 		return {offset, 0};
 	}

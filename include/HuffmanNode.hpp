@@ -5,31 +5,6 @@
 namespace huffman
 {
 
-/*struct HuffmanNode
-{
-	HuffmanNode() = default;
-	HuffmanNode(char c, size_t freq);
-	HuffmanNode(std::unique_ptr<HuffmanNode>&& lhs, std::unique_ptr<HuffmanNode>&& rhs, size_t freq);
-	~HuffmanNode() = default;
-
-	HuffmanNode(const HuffmanNode&);
-	HuffmanNode(HuffmanNode&&);
-	HuffmanNode& operator=(const HuffmanNode&);
-	HuffmanNode& operator=(HuffmanNode&&);
-
-	*//**
-	 * @brief				check if the node i a character node
-	 * @returns				true if the node is character node, otherwise false
-	 * @throws				nothing
-	 */
-	/*bool is_character() const;
-
-	std::unique_ptr<HuffmanNode> m_left{};
-	std::unique_ptr<HuffmanNode> m_right{};
-	char m_character{};
-	size_t m_frequency{};
-};*/
-
 class HuffmanNode
 {
 public:
@@ -38,6 +13,8 @@ public:
 	{
 
 	}
+
+	HuffmanNode(const HuffmanNode&) = delete;
 
 	virtual ~HuffmanNode() = default;
 
@@ -52,12 +29,18 @@ private:
 	size_t m_frequency;
 };
 
-class HuffmanCharacterNode : public HuffmanNode
+class HuffmanCharacterNode final : public HuffmanNode
 {
 public:
 
 	HuffmanCharacterNode(char character, size_t frequency)
 		: HuffmanNode{frequency}, m_character{character}
+	{
+
+	}
+
+	HuffmanCharacterNode(const HuffmanCharacterNode& other)
+		: HuffmanNode{other.frequency()}, m_character{other.m_character}
 	{
 
 	}
@@ -76,13 +59,26 @@ private:
 	char m_character;
 };
 
-class HuffmanTreeNode : public HuffmanNode
+class HuffmanTreeNode final : public HuffmanNode
 {
 public:
-	HuffmanTreeNode(std::unique_ptr<HuffmanNode> lhs, std::unique_ptr<HuffmanNode> rhs)
+	HuffmanTreeNode(std::unique_ptr<HuffmanNode>&& lhs, std::unique_ptr<HuffmanNode>&& rhs)
 		: HuffmanNode{lhs->frequency() + rhs->frequency()}, m_left{std::move(lhs)}, m_right{std::move(rhs)}
 	{
 		
+	}
+
+	HuffmanTreeNode(const HuffmanTreeNode& other)
+		: HuffmanNode{other.frequency()}
+	{
+		if(other.left()->is_character_node())
+		{
+			m_left = std::make_unique<HuffmanCharacterNode>(static_cast<const HuffmanCharacterNode&>(*other.left()));
+		}
+		else
+		{
+			m_left = std::make_unique<HuffmanTreeNode>(static_cast<const HuffmanTreeNode&>(*other.left()));
+		}
 	}
 
 	constexpr bool is_character_node() const override
@@ -90,12 +86,12 @@ public:
 		return false;
 	}
 
-	constexpr HuffmanNode* left() const
+	const HuffmanNode* left() const
 	{
 		return m_left.get();
 	}
 
-	constexpr HuffmanNode* right() const
+	const HuffmanNode* right() const
 	{
 		return m_right.get();
 	}

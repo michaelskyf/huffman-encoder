@@ -11,7 +11,7 @@ cpp_flags = [
 
 cpp_warn_blacklist = [
   '-Wno-suggest-attribute=pure', '-Wno-padded', '-Wno-c++98-compat', '-Wno-c++98-compat-pedantic', '-Wno-newline-eof',
-  '-Wno-global-constructors'
+  '-Wno-global-constructors', '-Wno-strict-overflow', '-Wno-weak-vtables'
 ]
 
 compiler = meson.get_compiler('cpp')

@@ -11,7 +11,7 @@ class HuffmanDictionary
 {
 public:
 	HuffmanDictionary() = default;
-	HuffmanDictionary(const HuffmanNode& root);
+	HuffmanDictionary(const HuffmanTreeNode& root);
 	HuffmanDictionary(const char* data, size_t size);
 	~HuffmanDictionary() = default;
 
@@ -44,11 +44,11 @@ public:
 	size_t size() const;
 
 	/**
-	 * @brief				check if the dictionary is initialized ( same as size() != 0 )
-	 * @returns				true if initialized, otherwise false
+	 * @brief				check if the dictionary is initialized ( same as size() == 0 )
+	 * @returns				false if initialized, otherwise true
 	 * @throws				nothing
 	 */
-	bool is_initialized() const;
+	bool empty() const;
 
 	/**
 	 * @brief				return a pointer to the root node
@@ -83,7 +83,7 @@ public:
 	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t bits_set);
 
 private:
-	std::unique_ptr<HuffmanNode> m_root{};
+	std::unique_ptr<HuffmanTreeNode> m_root{};
 };
 
 } // namespace huffman
