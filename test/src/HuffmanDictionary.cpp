@@ -51,12 +51,12 @@ TEST(huffman, encoding)
 {
 	HuffmanDictionary coder;
 	const std::string test_string = "A" "BB" "CCC" "DDDD" "EEEEE" "FFFFFF" "GGGGGGG";
-	const std::vector<unsigned char> correctly_encoded_string =
-	{0x7F, 0xB7, 0x8D, 0x24, 0x01, 0x00, 0x55, 0xA5, 0xAA, 0x02};
-	std::vector<unsigned char> buffer(correctly_encoded_string.size());
+	const std::string correctly_encoded_string =
+	{'\x7F', '\xB7', '\x8D', '\x24', '\x01', '\x00', '\x55', '\xA5', '\xAA', '\x02'};
+	std::string buffer(correctly_encoded_string.size(), 0);
 
 	coder.create(test_string.data(), test_string.size());
-	size_t offset = coder.encode(test_string.data(), test_string.size(), (char*)buffer.data(), buffer.size(), 0).second;
+	size_t offset = coder.encode(test_string.data(), test_string.size(), buffer.data(), buffer.size(), 0).second;
 
 	EXPECT_EQ(offset, (correctly_encoded_string.size()-1)*8+2); // test_string.size()-1 full characters and 2 additional bits
 	if(offset != (correctly_encoded_string.size()-1)*8+2)

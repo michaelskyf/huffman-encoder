@@ -50,24 +50,20 @@ void get_frequencies(std::array<size_t, 256>& array, const HuffmanNode& node)
 
 HuffmanNode makeTreeNode(frequency_queue& frequencies)
 {
-	std::array<HuffmanNode, 2> child_nodes;
-
-	child_nodes[0] = std::move(const_cast<HuffmanNode&>(frequencies.top()));
+	HuffmanNode child_left = std::move(const_cast<HuffmanNode&>(frequencies.top()));
 	frequencies.pop();
 
-	child_nodes[1] = std::move(const_cast<HuffmanNode&>(frequencies.top()));
+	HuffmanNode child_right = std::move(const_cast<HuffmanNode&>(frequencies.top()));
 	frequencies.pop();
 
-	return {std::move(child_nodes[0]), std::move(child_nodes[1])};
+	return {std::move(child_left), std::move(child_right)};
 }
 
 HuffmanNode make_huffman_tree(frequency_queue& frequencies)
 {
-	HuffmanNode result{};
-
 	if(frequencies.size() == 0)
 	{
-		return result;
+		return {0, 0};
 	}
 
 	while(frequencies.size() > 1)
@@ -76,7 +72,7 @@ HuffmanNode make_huffman_tree(frequency_queue& frequencies)
 		frequencies.emplace(std::move(new_node));
 	}
 
-	result = std::move(const_cast<HuffmanNode&>(frequencies.top()));
+	HuffmanNode result = std::move(const_cast<HuffmanNode&>(frequencies.top()));
 
 	return result;
 }
@@ -90,7 +86,7 @@ HuffmanDictionary::HuffmanDictionary(const char* src, size_t src_size)
 
 void HuffmanDictionary::create(const char* src, size_t src_size)
 {
-	m_root = {};
+	m_root = {0, 0};
 	create_part(src, src_size);
 }
 
@@ -117,7 +113,7 @@ void HuffmanDictionary::create_part(const char* src, size_t src_size)
 		// Trim bytes that do not appear
 		if(freq > 0)
 		{
-			frequencies.emplace(freq, static_cast<char>(i));
+			frequencies.emplace(static_cast<char>(i), freq);
 		}
 	}
 

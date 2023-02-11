@@ -78,7 +78,7 @@ public:
 	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t bits_set);
 
 private:
-	HuffmanNode m_root{};
+	HuffmanNode m_root{0, 0};
 };
 
 } // namespace huffman
