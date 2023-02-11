@@ -20,35 +20,31 @@ public:
 	{
 		const HuffmanNode* current_node = &m_root_node;
 
-		while(!m_loader.empty() && !current_node->is_character_node())
+		while(!m_loader.empty() && !current_node->is_byte_node())
 		{
-			const auto& tree_node = reinterpret_cast<const HuffmanTreeNode*>(current_node);
-
 			if(m_loader.value() & 1)
 			{
-				current_node = tree_node->left();
+				current_node = current_node->left();
 			}
 			else
 			{
-				current_node = tree_node->right();
+				current_node = current_node->right();
 			}
 
 			m_loader >>= 1;
 		}
 
-		if(current_node->is_character_node())
-		{
-			return {static_cast<const HuffmanCharacterNode*>(current_node)->character(), true};
-		}
-		else
-		{
-			return {0, false};
-		}
+		return {current_node->byte(), current_node->is_byte_node()};
 	}
 
 	size_t bitsProcessed() const
 	{
 		return m_loader.bitsProcessed();
+	}
+
+	size_t maxBits() const
+	{
+		return m_loader.maxBits();
 	}
 
 private:

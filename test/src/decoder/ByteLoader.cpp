@@ -9,7 +9,6 @@ TEST(decoder_ByteLoader, empty)
 
 	EXPECT_TRUE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 0);
-	EXPECT_EQ(object.totalBits(), 0);
 }
 
 TEST(decoder_ByteLoader, empty_offset)
@@ -18,7 +17,6 @@ TEST(decoder_ByteLoader, empty_offset)
 
 	EXPECT_TRUE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 0);
-	EXPECT_EQ(object.totalBits(), 0);
 }
 
 TEST(decoder_ByteLoader, one_byte)
@@ -29,7 +27,6 @@ TEST(decoder_ByteLoader, one_byte)
 	EXPECT_FALSE(object.empty());
 	EXPECT_EQ(object.value() & 0b111, (byte >> 3) & 0b111);
 	EXPECT_EQ(object.bitsProcessed(), 3);
-	EXPECT_EQ(object.totalBits(), 8);
 }
 
 TEST(decoder_ByteLoader, one_byte_shift)
@@ -42,7 +39,6 @@ TEST(decoder_ByteLoader, one_byte_shift)
 	EXPECT_FALSE(object.empty());
 	EXPECT_EQ(object.value() & 0b111, (byte >> 3) & 0b111);
 	EXPECT_EQ(object.bitsProcessed(), 3);
-	EXPECT_EQ(object.totalBits(), 8);
 }
 
 TEST(decoder_ByteLoader, one_byte_big_offset)
@@ -52,7 +48,6 @@ TEST(decoder_ByteLoader, one_byte_big_offset)
 
 	EXPECT_TRUE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 8);
-	EXPECT_EQ(object.totalBits(), 8);
 }
 
 TEST(decoder_ByteLoader, one_byte_big_shift)
@@ -64,7 +59,6 @@ TEST(decoder_ByteLoader, one_byte_big_shift)
 
 	EXPECT_TRUE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 8);
-	EXPECT_EQ(object.totalBits(), 8);
 }
 
 TEST(decoder_ByteLoader, byte_array_shift)
@@ -76,7 +70,6 @@ TEST(decoder_ByteLoader, byte_array_shift)
 
 	EXPECT_FALSE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 16);
-	EXPECT_EQ(object.totalBits(), bytes.size()*8);
 	EXPECT_EQ('\xAA', object.value());
 }
 
@@ -87,6 +80,5 @@ TEST(decoder_ByteLoader, byte_array_offset)
 
 	EXPECT_FALSE(object.empty());
 	EXPECT_EQ(object.bitsProcessed(), 16);
-	EXPECT_EQ(object.totalBits(), bytes.size()*8);
 	EXPECT_EQ('\xAA', object.value());
 }

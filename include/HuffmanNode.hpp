@@ -8,82 +8,70 @@ namespace huffman
 class HuffmanNode
 {
 public:
-	HuffmanNode(size_t frequency)
-		: m_frequency{frequency}
+	HuffmanNode(size_t frequency = 0, char byte = 0) noexcept
+		: m_frequency{frequency}, m_is_byte_node{true}, m_byte{byte}
 	{
 
 	}
 
-	HuffmanNode(const HuffmanNode&) = delete;
+	HuffmanNode(HuffmanNode&& left, HuffmanNode&& right)
+		: m_frequency{left.m_frequency + right.m_frequency},
+		  m_is_byte_node{false},
+		  m_left{std::make_unique<HuffmanNode>(std::move(left))},
+		  m_right{std::make_unique<HuffmanNode>(std::move(right))}
+	{
 
-	virtual ~HuffmanNode() = default;
+	}
 
-	virtual constexpr bool is_character_node() const = 0;
+	HuffmanNode(HuffmanNode&& other) noexcept
+		: m_frequency{other.m_frequency},
+		  m_is_byte_node{other.m_is_byte_node},
+		  m_byte{other.m_byte},
+		  m_left{std::move(other.m_left)},
+		  m_right{std::move(other.m_right)}
+	{
+
+	}
+
+	HuffmanNode(const HuffmanNode& other)
+		: m_frequency{other.m_frequency},
+		  m_is_byte_node{other.m_is_byte_node},
+		  m_byte{other.m_byte},
+		  m_left{std::make_unique<HuffmanNode>(std::move(*other.m_left))},
+		  m_right{std::make_unique<HuffmanNode>(std::move(*other.m_right))}
+	{
+
+	}
+
+	HuffmanNode& operator=(HuffmanNode&& other) noexcept
+	{
+		m_frequency = other.m_frequency;
+		m_is_byte_node = other.m_is_byte_node;
+		m_byte = other.m_byte;
+		m_left = std::move(other.m_left);
+		m_right = std::move(other.m_right);
+		
+		return *this;
+	}
+
+	bool operator>=(const HuffmanNode& other) const
+	{
+		return m_frequency >= other.m_frequency;
+	}
+
+	constexpr bool is_byte_node() const
+	{
+		return m_is_byte_node;
+	}
 
 	constexpr size_t frequency() const
 	{
 		return m_frequency;
 	}
 
-private:
-	size_t m_frequency;
-};
-
-class HuffmanCharacterNode final : public HuffmanNode
-{
-public:
-
-	HuffmanCharacterNode(char character, size_t frequency)
-		: HuffmanNode{frequency}, m_character{character}
+	constexpr char byte() const
 	{
-
-	}
-
-	HuffmanCharacterNode(const HuffmanCharacterNode& other)
-		: HuffmanNode{other.frequency()}, m_character{other.m_character}
-	{
-
-	}
-
-	constexpr bool is_character_node() const override
-	{
-		return true;
-	}
-
-	constexpr char character() const
-	{
-		return m_character;
-	}
-
-private:
-	char m_character;
-};
-
-class HuffmanTreeNode final : public HuffmanNode
-{
-public:
-	HuffmanTreeNode(std::unique_ptr<HuffmanNode>&& lhs, std::unique_ptr<HuffmanNode>&& rhs)
-		: HuffmanNode{lhs->frequency() + rhs->frequency()}, m_left{std::move(lhs)}, m_right{std::move(rhs)}
-	{
-		
-	}
-
-	HuffmanTreeNode(const HuffmanTreeNode& other)
-		: HuffmanNode{other.frequency()}
-	{
-		if(other.left()->is_character_node())
-		{
-			m_left = std::make_unique<HuffmanCharacterNode>(static_cast<const HuffmanCharacterNode&>(*other.left()));
-		}
-		else
-		{
-			m_left = std::make_unique<HuffmanTreeNode>(static_cast<const HuffmanTreeNode&>(*other.left()));
-		}
-	}
-
-	constexpr bool is_character_node() const override
-	{
-		return false;
+		return m_byte;
 	}
 
 	const HuffmanNode* left() const
@@ -97,7 +85,11 @@ public:
 	}
 
 private:
-	std::unique_ptr<HuffmanNode> m_left, m_right;
+	size_t m_frequency{};
+	bool m_is_byte_node{};
+
+	char m_byte{};
+	std::unique_ptr<HuffmanNode> m_left{}, m_right{};
 };
 
 } // namespace huffman

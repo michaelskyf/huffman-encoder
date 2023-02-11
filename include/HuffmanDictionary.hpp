@@ -11,14 +11,9 @@ class HuffmanDictionary
 {
 public:
 	HuffmanDictionary() = default;
-	HuffmanDictionary(const HuffmanTreeNode& root);
+	HuffmanDictionary(const HuffmanNode& root);
 	HuffmanDictionary(const char* data, size_t size);
 	~HuffmanDictionary() = default;
-
-	HuffmanDictionary(const HuffmanDictionary&);
-	HuffmanDictionary(HuffmanDictionary&&);
-	HuffmanDictionary& operator=(const HuffmanDictionary&);
-	HuffmanDictionary& operator=(HuffmanDictionary&&);
 
 	/**
 	 * @brief				create a new dictionary from the given data
@@ -55,7 +50,7 @@ public:
 	 * @returns				nullptr if the tree is not initialized, otherwise a pointer to the root node
 	 * @throws				nothing
 	 */
-	const HuffmanNode* data() const;
+	constexpr const HuffmanNode& data() const;
 
 	/**
 	 * @brief						create a new dictionary (if not already initialized) and encode the data according to it
@@ -68,7 +63,7 @@ public:
 	 * @returns						number of bytes read from src (first) and number of bits written to dst (the last byte may be partially written) (second)
 	 * @throws						std::bad_alloc
 	 */
-	std::pair<size_t, size_t> encode(const char* src, size_t src_size, char* dst, size_t dst_size, char byte, size_t bits_set);
+	std::pair<size_t, size_t> encode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t bits_set);
 
 	/**
 	 * @brief						decode given data using the dictionary
@@ -83,7 +78,7 @@ public:
 	std::pair<size_t, size_t> decode(const char* src, size_t src_size, char* dst, size_t dst_size, size_t bits_set);
 
 private:
-	std::unique_ptr<HuffmanTreeNode> m_root{};
+	HuffmanNode m_root{};
 };
 
 } // namespace huffman

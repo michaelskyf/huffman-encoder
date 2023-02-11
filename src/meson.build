@@ -3,6 +3,8 @@ source_files = files(
 	'HuffmanNode.cpp',
 )
 
+subdir('encoder')
+
 libhuffman = static_library('huffman',
 	source_files,
 	include_directories : inc)

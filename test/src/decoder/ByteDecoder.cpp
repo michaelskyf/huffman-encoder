@@ -4,14 +4,15 @@
 #include <type_traits>
 
 using namespace huffman::decoder;
+using namespace huffman;
 
 TEST(decoder_ByteDecoder, decode_null)
 {
 	ByteLoader loader(nullptr, 0, 0);
-	huffman::HuffmanTreeNode root
+	HuffmanNode root
 	{
-		std::make_unique<huffman::HuffmanCharacterNode>('a', 1),
-		std::make_unique<huffman::HuffmanCharacterNode>('b', 2)
+		{'a', 1},
+		{'b', 2}
 	};
 
 	ByteDecoder decoder(loader, root);

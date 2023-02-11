@@ -20,7 +20,7 @@ public:
 
 	bool empty() const
 	{
-		return m_bits_processed >= m_total_bits;
+		return m_bits_processed == m_total_bits;
 	}
 
 	char value() const
@@ -33,14 +33,9 @@ public:
 		return m_bits_processed;
 	}
 
-	size_t totalBits() const
-	{
-		return m_total_bits;
-	}
-
 	char operator>>=(size_t right_shift)
 	{
-		if(m_bits_processed + right_shift < m_total_bits)
+		if(right_shift < m_total_bits - m_bits_processed)
 		{
 			m_bits_processed += right_shift;
 		}
@@ -53,6 +48,11 @@ public:
 		m_shift = (m_shift + right_shift) % 8;
 
 		return value();
+	}
+
+	size_t maxBits() const
+	{
+		return m_total_bits;
 	}
 
 private:
