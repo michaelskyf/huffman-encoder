@@ -215,45 +215,31 @@ static int parse_args(int argc, char* argv[])
  * @param[in]	path	name of file from where the tree would be read
  * @returns		pointer to a new tree on success, nullptr on failure
  */
-std::unique_ptr<HuffmanNode> read_huffman_tree_json(const char* path)
+HuffmanNode read_huffman_tree_json(const char* path)
 {
 	pt::ptree root;
 	pt::read_json(path, root);
-	std::unique_ptr<HuffmanNode> result{};
+	HuffmanNode result{0, 0};
 
-	std::function<std::unique_ptr<HuffmanNode>(const pt::ptree&)> recursive_get =
+	std::function<HuffmanNode(const pt::ptree&)> recursive_get =
 	[&](const pt::ptree& json_node)
 	{
-		auto new_node = std::make_unique<HuffmanNode>();
+		HuffmanNode new_node{0, 0};
 
 		try
 		{
-			new_node->m_frequency = json_node.get<size_t>("frequency");
-		}
-		catch(...)
-		{
-			return std::unique_ptr<HuffmanNode>{};
-		}
-
-		try
-		{
-			new_node->m_left = recursive_get(json_node.get_child("left"));
-			new_node->m_right = recursive_get(json_node.get_child("right"));
-
-			if(!(new_node->m_left && new_node->m_right))
-			{
-				throw std::runtime_error("");
-			}
+			return HuffmanNode{static_cast<char>(json_node.get<unsigned char>("character")), json_node.get<size_t>("frequency")};
 		}
 		catch(...)
 		{
 			try
 			{
-				new_node->m_character = json_node.get<unsigned char>("character");
+				return HuffmanNode{recursive_get(json_node.get_child("left")), recursive_get(json_node.get_child("right"))};
 			}
 			catch(...)
 			{
-				return std::unique_ptr<HuffmanNode>{};
+
+				return HuffmanNode{0, 0};
 			}
 		}
 
@@ -287,19 +273,17 @@ bool write_huffman_tree_json(const char* path, const HuffmanNode& root)
 	std::function<void(pt::ptree&, const HuffmanNode&)> recursive_put =
 	[&](pt::ptree& json_node, const HuffmanNode& node)
 	{
-
-		json_node.put("frequency", node.m_frequency);
-
-		if(node.is_character())
+		if(node.is_byte_node())
 		{
-			json_node.put("character", static_cast<unsigned char>(node.m_character));
+			json_node.put("frequency", node.frequency());
+			json_node.put("character", static_cast<unsigned char>(node.byte()));
 		}
-		else if(node.m_left && node.m_right)
+		else
 		{
 			pt::ptree left, right;
 
-			recursive_put(left, *node.m_left);
-			recursive_put(right, *node.m_right);
+			recursive_put(left, *node.left());
+			recursive_put(right, *node.right());
 
 			json_node.add_child("left", left);
 			json_node.add_child("right", right);
@@ -343,7 +327,7 @@ void compress()
 			dictionary.create_part(read_buffer, read_bytes);
 		}
 
-		if(!dictionary.is_initialized())
+		if(dictionary.empty())
 		{
 			std::cerr << "Failed to initialize dictionary" << std::endl;
 			exit(EXIT_FAILURE);
@@ -365,7 +349,7 @@ void compress()
 			char* r_buf = read_buffer;
 			while(read_bytes)
 			{
-				auto result = dictionary.encode(r_buf, read_bytes, write_buffer, sizeof(write_buffer), *write_buffer, offset);
+				auto result = dictionary.encode(r_buf, read_bytes, write_buffer, sizeof(write_buffer), offset);
 				offset = result.second;
 				buffer_fill = offset/8;
 				offset -= (offset/8)*8;
@@ -395,7 +379,7 @@ void compress()
 			}
 		}
 
-		if(!write_huffman_tree_json(parsed_options.dictionary_path.c_str(), *dictionary.data()))
+		if(!write_huffman_tree_json(parsed_options.dictionary_path.c_str(), dictionary.data()))
 		{
 			std::cerr << "Failed to write dictionary" << std::endl;
 			exit(EXIT_FAILURE);
@@ -412,14 +396,9 @@ void decompress()
 {
 	std::ifstream input_file(parsed_options.input_path);
 	std::ofstream output_file(parsed_options.output_path);
-	HuffmanDictionary dictionary;
-	auto htptr = read_huffman_tree_json(parsed_options.dictionary_path.c_str());
-	if(htptr)
-	{
-		dictionary = {*htptr};
-		htptr.reset();
-	}
-	else
+	HuffmanDictionary dictionary(read_huffman_tree_json(parsed_options.dictionary_path.c_str()));
+	
+	if(dictionary.empty())
 	{
 		std::cerr << "Failed to load dictionary" << std::endl;
 		exit(EXIT_FAILURE);
