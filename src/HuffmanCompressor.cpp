@@ -10,12 +10,18 @@ namespace
 
 huffman::HuffmanDictionary init_dictionary(std::istream& src)
 {
-	std::string rdbuf;
+	std::array<char, 1024> rdbuf;
 	huffman::HuffmanDictionary result{};
 
-	while(std::getline(src, rdbuf))
+	while(true)
 	{
-		result.create_part(rdbuf.data(), rdbuf.size());
+		src.read(rdbuf.data(), rdbuf.size());
+		if(src.gcount() == 0)
+		{
+			break;
+		}
+
+		result.create_part(rdbuf.data(), static_cast<size_t>(src.gcount()));
 	}
 
 	src.clear();
@@ -65,7 +71,61 @@ public:
 
 private:
 	std::istream& m_src;
-	std::array<char, 1024> m_buffer;
+	std::array<char, 4> m_buffer;
+	size_t m_bytes_used = 0;
+};
+
+class Writer
+{
+public:
+
+	Writer(std::ostream& dst)
+		: m_dst{dst}
+	{
+
+	}
+
+	size_t space_used() const
+	{
+		return m_bytes_used;
+	}
+
+	size_t space_left() const
+	{
+		return m_buffer.size()-space_used();
+	}
+
+	char* buffer()
+	{
+		return m_buffer.data()+space_used();
+	}
+
+	bool write()
+	{
+		if(!m_dst.write(m_buffer.data(), static_cast<std::streamsize>(space_used())))
+		{
+			return false;
+		}
+
+		memmove(m_buffer.data(), buffer(), space_left());
+
+		m_bytes_used = 0;
+		return true;
+	}
+
+	void set_written(size_t n)
+	{
+		if(n > space_left())
+		{
+			n = space_left();
+		}
+
+		m_bytes_used += n;
+	}
+
+private:
+	std::ostream& m_dst;
+	std::array<char, 4> m_buffer;
 	size_t m_bytes_used = 0;
 };
 
@@ -85,38 +145,39 @@ HuffmanCompressor::HuffmanCompressor(const huffman::HuffmanDictionary& dictionar
 
 bool HuffmanCompressor::compress(std::istream& src, std::ostream& dst)
 {
-	m_dictionary = init_dictionary(src);
-	std::string wrbuf(3, '\0');
+	if(m_dictionary.empty())
+	{
+		m_dictionary = init_dictionary(src);
+	}
+	
 	Reader reader(src);
-	Writer writer;
+	Writer writer(dst);
 	size_t offset = 0;
 
 	while(true)
 	{
-		auto[src_read, bits_written] = m_dictionary.encode(reader.data(), reader.read(), wrbuf.data(), wrbuf.size(), offset);
+		auto[src_read, bits_written] = m_dictionary.encode(reader.data(), reader.read(), writer.buffer(), writer.space_left(), offset);
 		if(bits_written == offset)
 		{
 			break;
 		}
 
-		reader.erase(src_read);
+		size_t bytes_written = bits_written / 8;
 		offset = bits_written % 8;
 
-		size_t bytes_to_write = bits_written/8;
-		if(!dst.write(wrbuf.data(), static_cast<std::streamsize>(bytes_to_write)))
+		reader.erase(src_read);
+		writer.set_written(bytes_written);
+
+		if(!writer.write())
 		{
 			return false;
-		}
-
-		if(offset)
-		{
-			wrbuf[0] = wrbuf[bytes_to_write];
 		}
 	}
 
 	if(offset)
 	{
-		if(!dst.write(wrbuf.data(), 1))
+		writer.set_written(1);
+		if(!writer.write())
 		{
 			return false;
 		}
@@ -127,8 +188,36 @@ bool HuffmanCompressor::compress(std::istream& src, std::ostream& dst)
 
 bool HuffmanCompressor::decompress(std::istream& src, std::ostream& dst)
 {
+	if(m_dictionary.empty())
+	{
+		return false;
+	}
 
-	return true;
+	Reader reader(src);
+	Writer writer(dst);
+	size_t offset = 0;
+	size_t bytes_left = m_dictionary.size();
+
+	while(true)
+	{
+		auto[src_read, dst_written] = m_dictionary.decode(reader.data(), reader.read(), writer.buffer(), std::min(writer.space_left(), bytes_left), offset);
+		if(dst_written == 0)
+		{
+			return true;
+		}
+
+		size_t bytes_read = src_read / 8;
+		offset = src_read % 8;
+
+		reader.erase(bytes_read);
+		writer.set_written(dst_written);
+		bytes_left -= dst_written;
+
+		if(!writer.write())
+		{
+			return false;
+		}
+	}
 }
 
 const huffman::HuffmanDictionary& HuffmanCompressor::data() const

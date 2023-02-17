@@ -1,5 +1,6 @@
 test_sources = [
     'HuffmanCompressor.cpp',
+	'JsonHuffmanParser.cpp',
 ]
 
 e = executable('huffman', test_sources,
