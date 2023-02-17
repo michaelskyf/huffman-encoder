@@ -31,7 +31,7 @@ void compare_trees(const HuffmanNode& lhs, const HuffmanNode& rhs)
 
 } // namespace
 
-TEST(JsonHuffmanParser, empty_tree)
+TEST(JsonHuffmanParser, read_empty_tree)
 {
 	const std::string json =
 	"{\n"
@@ -45,7 +45,7 @@ TEST(JsonHuffmanParser, empty_tree)
 	EXPECT_TRUE(dictionary.empty());
 }
 
-TEST(JsonHuffmanParser, small_tree)
+TEST(JsonHuffmanParser, read_small_tree)
 {
 	const std::string json =
 	"{"
@@ -66,4 +66,26 @@ TEST(JsonHuffmanParser, small_tree)
 
 	EXPECT_EQ(dictionary.size(), 529);
 	compare_trees(dictionary.data(), root);
+}
+
+TEST(JsonHuffmanParser, write_small_tree)
+{
+	const std::string json =
+	"{"
+		"\"root\": {"
+			"\"left\": {\"character\": \"207\", \"frequency\": \"406\"},"
+			"\"right\": {\"character\": \"101\", \"frequency\": \"123\"}"
+		"}"
+	"}";
+	std::cout << json << std::endl;
+	std::stringstream json_stream{json};
+	HuffmanDictionary dictionary =
+	{{
+		{'\xCF', 406},
+		{'\x65', 123}
+	}};
+
+	bool was_successful = write_dictionary(json_stream, dictionary);
+
+	EXPECT_EQ(was_successful, true);
 }
