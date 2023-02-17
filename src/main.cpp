@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <spdlog/spdlog.h>
 #include <argparse/argparse.hpp>
 
 #include "HuffmanCompressor.hpp"
@@ -48,7 +47,7 @@ std::pair<bool, ParsedArguments> parse_arguments(int argc, char* argv[])
   	}
   	catch(const std::runtime_error& err)
 	{
-    	spdlog::error(err.what());
+    	std::cerr << err.what() << std::endl;
     	return {false, {}};
  	}
 
@@ -63,7 +62,7 @@ std::pair<bool, ParsedArguments> parse_arguments(int argc, char* argv[])
 	}
 	else
 	{
-		spdlog::error("Invalid mode '{}'", mode);
+		std::cerr << "Invalid mode '" << mode << "'" << std::endl;
 		return {false, {}};
 	}
 
@@ -83,19 +82,19 @@ int compress(const ParsedArguments& args)
 
 	if(!input || !output || !dictionary)
 	{
-		spdlog::error("{}: Failed to open input, output or dictionary", __func__);
+		std::cerr << __func__ << ": Failed to open input, output or dictionary" << std::endl;
 		return 1;
 	}
 
 	if(compressor.compress(input, output) == false)
 	{
-		spdlog::error("{}: Failed to compress data", __func__);
+		std::cerr << __func__ << ": Failed to compress data" << std::endl;
 		return 1;
 	}
 
 	if(jhparser::write_dictionary(dictionary, compressor.data()) == false)
 	{
-		spdlog::error("{}: Failed to write dictionary", __func__);
+		std::cerr << __func__ << ": Failed to write dictionary" << std::endl;
 		return 1;
 	}
 
@@ -113,7 +112,7 @@ int decompress(const ParsedArguments& args)
 
 	if(!input || !output || !dictionary)
 	{
-		spdlog::error("{}: Failed to open input, output or dictionary", __func__);
+		std::cerr << __func__ << ": Failed to open input, output or dictionary" << std::endl;
 		return 1;
 	}
 
@@ -121,13 +120,13 @@ int decompress(const ParsedArguments& args)
 	dictionary.close();
 	if(decompressor.empty())
 	{
-		spdlog::error("{}: Failed to read dictionary", __func__);
+		std::cerr << __func__ << ": Failed to read dictionary" << std::endl;
 		return 1;
 	}
 
 	if(decompressor.decompress(input, output) == false)
 	{
-		spdlog::error("{}: Failed to decompress data", __func__);
+		std::cerr << __func__ << ": Failed to decompress data" << std::endl;
 		return 1;
 	}
 

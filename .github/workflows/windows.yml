@@ -35,8 +35,20 @@ jobs:
       - name: Install dependencies
         run: choco install python; pip3 install meson ninja
 
+      - name: Install boost
+        uses: MarkusJx/install-boost@v2.4.1
+        id: install-boost
+        with:
+          boost_version: 1.81.0
+          boost_install_dir: D:\boost
+          toolset: msvc
+
       - name: Run Meson
-        run: cmd /v /c "set CXX=${{matrix.compiler.cxx}} && set CXX_LD=${{matrix.compiler.ld}} && meson setup build"
+        run: meson setup build
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+          CXX: ${{matrix.compiler.cxx}}
+          CXX_LD: ${{matrix.compiler.ld}}
 
       - name: Compile the project
         run: ninja -C build

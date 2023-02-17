@@ -50,11 +50,11 @@ TEST(JsonHuffmanParser, read_small_tree)
 	const std::string json =
 	"{"
 		"\"root\": {"
-			"\"left\": {\"character\": \"207\", \"frequency\": \"406\"},"
-			"\"right\": {\"character\": \"101\", \"frequency\": \"123\"}"
+			"\"left\": {\"character\": 207, \"frequency\": 406},"
+			"\"right\": {\"character\": 101, \"frequency\": 123}"
 		"}"
 	"}";
-	std::cout << json << std::endl;
+	
 	std::stringstream json_stream{json};
 	HuffmanNode root =
 	{
@@ -70,15 +70,7 @@ TEST(JsonHuffmanParser, read_small_tree)
 
 TEST(JsonHuffmanParser, write_small_tree)
 {
-	const std::string json =
-	"{"
-		"\"root\": {"
-			"\"left\": {\"character\": \"207\", \"frequency\": \"406\"},"
-			"\"right\": {\"character\": \"101\", \"frequency\": \"123\"}"
-		"}"
-	"}";
-	std::cout << json << std::endl;
-	std::stringstream json_stream{json};
+	std::stringstream json_stream;
 	HuffmanDictionary dictionary =
 	{{
 		{'\xCF', 406},

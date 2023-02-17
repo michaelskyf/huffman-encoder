@@ -1,7 +1,6 @@
 libhuffman_dep = dependency('libhuffman', fallback: ['libhuffman', 'libhuffman_dep'])
-spdlog_dep = dependency('spdlog', fallback: ['spdlog', 'spdlog_dep'])
 argparse_dep = dependency('argparse', fallback: ['argparse', 'argparse_dep'])
-boost_dep = dependency('boost', version: '>=1.75.0', modules : ['json'])
+boost_dep = dependency('boost', modules: [ 'json' ])
 
 source_files = files(
 	'HuffmanCompressor.cpp',
@@ -14,11 +13,10 @@ libhuffmanencoder = static_library(
 	dependencies: [ libhuffman_dep, boost_dep ]
 )
 
-
 e = executable(
     'huffman',
 	'main.cpp',
-	dependencies: [ libhuffman_dep, spdlog_dep, argparse_dep ],
+	dependencies: [ libhuffman_dep, argparse_dep ],
 	link_with: libhuffmanencoder,
     install: true
 )

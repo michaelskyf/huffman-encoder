@@ -27,10 +27,20 @@ jobs:
         run: git submodule update --init
 
       - name: Install dependencies
-        run: sudo apt install python3-pip; sudo pip3 install meson ninja
+        run: sudo apt install python3-pip; pip3 install meson ninja
+
+      - name: Install boost
+        uses: MarkusJx/install-boost@v2.4.1
+        id: install-boost
+        with:
+          boost_version: 1.81.0
+          boost_install_dir: /tmp
 
       - name: Run Meson
-        run: CXX=${{matrix.compiler}} meson setup build -Db_sanitize=address
+        run: meson setup build -Db_sanitize=address
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+          CXX: ${{matrix.compiler}}
 
       - name: Compile the project
         run: ninja -C build
